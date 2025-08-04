@@ -1,0 +1,52 @@
+.header {
+  text-align: center;
+  margin-bottom: 50px;
+  padding: 30px 0;
+}
+
+.header h1 {
+  font-size: 2em;
+  color: #3de937;
+  margin-bottom: 40px;
+  position: relative;
+}
+
+.header h1 span {
+  display: inline-block;
+  opacity: 0;
+  animation: letterFade 0.5s ease-in-out forwards;
+}
+
+@keyframes letterFade {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInFade {
+  0% {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.header p {
+  font-size: 1.1em;
+  line-height: 1.6;
+  text-align: left;
+  padding: 0 20px;
+  margin-bottom: 25px;  /* Added space between paragraphs */
+}
+
+.header p:last-child {
+  margin-bottom: 0;    /* Remove bottom margin from last paragraph */
+}

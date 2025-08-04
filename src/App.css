@@ -1,0 +1,41 @@
+/* App.css */
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: black;
+  font-family: 'Times New Roman', serif;
+  color: white;
+  /* Add smooth scrolling behavior */
+  overflow-y: scroll;
+  scroll-behavior: smooth;
+}
+
+.app {
+  padding: 20px;
+  /* Ensure content has room to scroll */
+  min-height: 100vh;
+}
+
+/* Style for input boxes */
+input {
+  background-color: transparent;
+  border: 1px solid #ccc;
+  color: white;
+  padding: 8px;
+  border-radius: 4px;
+  transition: border-color 0.3s ease;
+}
+
+/* Hover effect for input boxes */
+input:hover {
+  border-color: #007bff;
+  outline: none;
+}
+
+/* Focus effect for input boxes */
+input:focus {
+  border-color: #007bff;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
