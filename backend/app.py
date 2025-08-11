@@ -8,9 +8,18 @@ import base64
 from io import BytesIO
 import re
 import math
+import os
+from typing import Dict, List, Tuple
+# import google.generativeai as genai  # Temporarily commented out
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for React app
+
+# Configure Gemini AI (you'll need to set your API key)
+# Set your API key: export GEMINI_API_KEY="your_api_key_here"
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+model = None  # Temporarily disabled
+print("⚠️  Gemini AI temporarily disabled. Basic graph generation will work.")
 
 @app.route('/api/generate', methods=['POST'])
 def generate_graph():
@@ -94,11 +103,21 @@ def safe_eval_polar_expression(expression, theta_values, a=1, n=1):
     # Replace common mathematical notation
     expression = expression.lower()
     expression = expression.replace('^', '**')  # Handle exponents
-    expression = expression.replace('θ', 'theta').replace('ϴ', 'theta')
+    
+    # Handle multiple theta formats
+    expression = expression.replace('θ', 'theta')  # Greek theta
+    expression = expression.replace('ϴ', 'theta')  # Alternative theta
+    expression = expression.replace('t)', 'theta)')  # t as theta
+    expression = expression.replace('(t', '(theta')  # t as theta
+    expression = expression.replace(' t ', ' theta ')  # standalone t
+    expression = expression.replace('*t*', '*theta*')  # t between operators
+    expression = expression.replace('+t+', '+theta+')  # t with plus
+    expression = expression.replace('-t-', '-theta-')  # t with minus
     
     # Create safe environment for evaluation
     safe_dict = {
         "theta": theta_values,
+        "t": theta_values,  # Also accept 't' as theta
         "a": a,
         "n": n,
         "sin": np.sin,
@@ -124,7 +143,7 @@ def safe_eval_polar_expression(expression, theta_values, a=1, n=1):
 def detect_polar_equation(expression):
     """Detect if the expression is a polar equation (contains r, theta, etc.)"""
     expr_lower = expression.lower()
-    polar_indicators = ['r =', 'r=', 'theta', 'θ', 'ϴ', 'cos(', 'sin(']
+    polar_indicators = ['r =', 'r=', 'theta', 'θ', 'ϴ', 'cos(', 'sin(', 'cos(t)', 'sin(t)', 'cos(theta)', 'sin(theta)']
     cartesian_indicators = ['y =', 'y=', 'f(x)', 'x**', 'x^']
     
     has_polar = any(indicator in expr_lower for indicator in polar_indicators)
@@ -405,6 +424,216 @@ def classify_function(expression):
     else:
         return 'Mathematical function'
 
+def parse_natural_language(user_input: str) -> Dict:
+    """
+    Convert natural language input to mathematical expressions
+    Examples:
+    - "draw rose with 4 petals" -> "r = cos(2*theta)"
+    - "create a circle" -> "r = 1"  
+    - "make a sine wave" -> "sin(x)"
+    """
+    
+    input_lower = user_input.lower().strip()
+    
+    # Rose curve patterns
+    rose_patterns = [
+        (r'rose.*?(\d+).*?petal', lambda match: generate_rose_equation(int(match.group(1)))),
+        (r'(\d+).*?petal.*?rose', lambda match: generate_rose_equation(int(match.group(1)))),
+        (r'rose.*?flower', lambda: "r = cos(2*theta)"),  # Default 4-petal rose
+        (r'flower.*?pattern', lambda: "r = cos(3*theta)"),  # Default 3-petal
+    ]
+    
+    # Basic shapes
+    shape_patterns = [
+        (r'circle', lambda: "r = 1"),
+        (r'heart.*?shape|cardioid', lambda: "r = 1 + cos(theta)"),
+        (r'spiral', lambda: "r = theta"),
+        (r'figure.*?eight|lemniscate', lambda: "r = sqrt(2*cos(2*theta))"),
+        (r'limaçon|lima.*?con', lambda: "r = 2 + cos(theta)"),
+    ]
+    
+    # Wave functions  
+    wave_patterns = [
+        (r'sine.*?wave|sin.*?function', lambda: "sin(x)"),
+        (r'cosine.*?wave|cos.*?function', lambda: "cos(x)"),
+        (r'tangent.*?wave|tan.*?function', lambda: "tan(x)"),
+        (r'wave.*?function', lambda: "sin(x)"),
+    ]
+    
+    # Polynomial functions
+    poly_patterns = [
+        (r'parabola|quadratic', lambda: "x^2"),
+        (r'cubic.*?function', lambda: "x^3"),
+        (r'linear.*?function|straight.*?line', lambda: "x"),
+        (r'square.*?root', lambda: "sqrt(x)"),
+    ]
+    
+    # Advanced functions
+    advanced_patterns = [
+        (r'exponential.*?growth', lambda: "exp(x)"),
+        (r'logarithm.*?function|log.*?function', lambda: "log(x)"),
+        (r'bell.*?curve|gaussian', lambda: "exp(-x^2)"),
+        (r'absolute.*?value', lambda: "abs(x)"),
+    ]
+    
+    # Check all patterns
+    all_patterns = rose_patterns + shape_patterns + wave_patterns + poly_patterns + advanced_patterns
+    
+    for pattern, generator in all_patterns:
+        match = re.search(pattern, input_lower)
+        if match:
+            try:
+                equation = generator(match) if 'match' in str(generator.__code__.co_varnames) else generator()
+                return {
+                    'success': True,
+                    'equation': equation,
+                    'interpretation': f'Interpreted "{user_input}" as: {equation}',
+                    'type': determine_equation_type(equation),
+                    'suggested_function_type': '2D' if any(x in equation for x in ['r =', 'sin(x)', 'cos(x)']) else '2D'
+                }
+            except:
+                continue
+    
+    # If no pattern matches, try to extract numbers for rose curves
+    numbers = re.findall(r'\d+', input_lower)
+    if ('rose' in input_lower or 'petal' in input_lower) and numbers:
+        petal_count = int(numbers[0])
+        equation = generate_rose_equation(petal_count)
+        return {
+            'success': True,
+            'equation': equation,
+            'interpretation': f'Created rose with {petal_count} petals: {equation}',
+            'type': 'polar',
+            'suggested_function_type': '2D'
+        }
+    
+    # Advanced NLP: Check for mathematical terms
+    if any(term in input_lower for term in ['graph', 'plot', 'draw', 'show', 'create', 'make']):
+        return {
+            'success': False,
+            'error': 'Could not understand the request. Try examples like:',
+            'suggestions': [
+                '"draw rose with 4 petals"',
+                '"create a circle"', 
+                '"make a sine wave"',
+                '"show parabola"',
+                '"plot heart shape"'
+            ]
+        }
+    
+    return {
+        'success': False,
+        'error': 'Natural language not recognized. Please use mathematical notation or try examples above.',
+        'suggestions': ['r = cos(2*theta)', 'sin(x)', 'x^2']
+    }
+
+def generate_rose_equation(petal_count: int) -> str:
+    """Generate rose equation based on desired petal count"""
+    if petal_count <= 0:
+        return "r = cos(2*theta)"  # Default
+    
+    # Rose curve mathematics:
+    # - If n is even: 2n petals
+    # - If n is odd: n petals
+    
+    if petal_count % 2 == 0:
+        # Even number of petals: n = petals/2
+        n = petal_count // 2
+    else:
+        # Odd number of petals: n = petals
+        n = petal_count
+    
+    return f"r = cos({n}*theta)"
+
+def determine_equation_type(equation: str) -> str:
+    """Determine if equation is polar, cartesian, etc."""
+    eq_lower = equation.lower()
+    if 'r =' in eq_lower or 'theta' in eq_lower:
+        return 'polar'
+    elif any(func in eq_lower for func in ['sin(x)', 'cos(x)', 'tan(x)']):
+        return 'cartesian_trig'
+    else:
+        return 'cartesian'
+
+def generate_ai_explanation(expression, model_type, analysis):
+    """Generate detailed AI explanation using Gemini API"""
+    if not model or not GEMINI_API_KEY:
+        return {
+            'explanation': 'AI explanations are not available. Please set GEMINI_API_KEY environment variable.',
+            'mathematical_insights': 'Advanced analysis requires API key configuration.',
+            'real_world_applications': 'Please configure Gemini API for detailed explanations.'
+        }
+    
+    try:
+        # Create a comprehensive prompt for Gemini
+        prompt = f"""
+        You are a mathematics professor explaining a 3D mathematical model to students. 
+        
+        Mathematical Expression: {expression}
+        Model Type: {model_type}
+        Analysis Data: {analysis}
+        
+        Please provide a detailed, educational explanation covering:
+        
+        1. **Mathematical Foundation**: Explain what this equation represents mathematically
+        2. **3D Visualization**: Describe what the 3D model shows and why it looks the way it does
+        3. **Key Properties**: Highlight important mathematical properties (symmetry, periodicity, etc.)
+        4. **Real-World Applications**: Where might this type of curve/surface be found in nature, engineering, or science?
+        5. **Interesting Facts**: Share fascinating mathematical insights about this type of function
+        
+        Keep the explanation accessible but mathematically accurate. Use clear, engaging language.
+        Format your response as a structured explanation that would help students understand both the mathematics and the visualization.
+        """
+        
+        # Generate response using Gemini
+        response = model.generate_content(prompt)
+        
+        # Parse the response (you might want to structure this better)
+        explanation_text = response.text
+        
+        # Split into sections (this is a simple approach - you could make it more sophisticated)
+        sections = explanation_text.split('\n\n')
+        
+        return {
+            'full_explanation': explanation_text,
+            'mathematical_foundation': extract_section(explanation_text, 'Mathematical Foundation'),
+            'visualization_description': extract_section(explanation_text, '3D Visualization'),
+            'key_properties': extract_section(explanation_text, 'Key Properties'),
+            'real_world_applications': extract_section(explanation_text, 'Real-World Applications'),
+            'interesting_facts': extract_section(explanation_text, 'Interesting Facts'),
+            'ai_powered': True
+        }
+        
+    except Exception as e:
+        print(f"Error generating AI explanation: {e}")
+        return {
+            'explanation': f'Error generating AI explanation: {str(e)}',
+            'mathematical_insights': 'AI analysis temporarily unavailable.',
+            'real_world_applications': 'Please try again later.',
+            'ai_powered': False
+        }
+
+def extract_section(text, section_name):
+    """Extract a specific section from the AI response"""
+    try:
+        # Simple text extraction - you could make this more robust
+        lines = text.split('\n')
+        in_section = False
+        section_content = []
+        
+        for line in lines:
+            if section_name.lower() in line.lower() and ('**' in line or '#' in line):
+                in_section = True
+                continue
+            elif in_section and (line.strip().startswith('**') or line.strip().startswith('#')):
+                break
+            elif in_section and line.strip():
+                section_content.append(line.strip())
+        
+        return ' '.join(section_content) if section_content else f"Information about {section_name} is included in the full explanation."
+    except:
+        return f"See full explanation for {section_name} details."
+
 def generate_3d_model(expression):
     """Generate 3D visualization - handles both Cartesian and Polar equations"""
     try:
@@ -503,7 +732,17 @@ def generate_3d_polar_surface(expression):
                 'petals': f'{2*n if n%2==0 else n} petals' if 'cos' in expression else 'Complex pattern',
                 'max_radius': f'{np.max(np.abs(r_values)):.2f}',
                 'z_range': '[-2, 2]'
-            }
+            },
+            'ai_explanation': generate_ai_explanation(
+                expression, 
+                '3D Surface of Revolution from Polar Curve',
+                {
+                    'type': '3D Surface of Revolution from Polar Curve',
+                    'petals': f'{2*n if n%2==0 else n} petals' if 'cos' in expression else 'Complex pattern',
+                    'max_radius': f'{np.max(np.abs(r_values)):.2f}',
+                    'z_range': '[-2, 2]'
+                }
+            )
         }
         
     except Exception as e:
@@ -575,7 +814,16 @@ def generate_3d_cartesian_surface(expression):
                 'type': '3D Cartesian Surface',
                 'description': f'Surface plot of z = {expression}',
                 'domain': 'x,y ∈ [-5, 5]'
-            }
+            },
+            'ai_explanation': generate_ai_explanation(
+                expression,
+                '3D Cartesian Surface',
+                {
+                    'type': '3D Cartesian Surface',
+                    'description': f'Surface plot of z = {expression}',
+                    'domain': 'x,y ∈ [-5, 5]'
+                }
+            )
         }
         
     except Exception as e:
@@ -635,6 +883,31 @@ def health_check():
         'status': 'healthy',
         'message': 'Flask backend is running successfully!'
     })
+
+@app.route('/api/parse-language', methods=['POST'])
+def parse_natural_language_endpoint():
+    """Endpoint to parse natural language input"""
+    data = request.get_json()
+    user_input = data.get('input', '')
+    
+    print(f"🗣️  Natural language input: {user_input}")
+    
+    if not user_input:
+        return jsonify({
+            'success': False,
+            'error': 'No input provided'
+        }), 400
+    
+    try:
+        result = parse_natural_language(user_input)
+        print(f"✅ Parsed result: {result}")
+        return jsonify(result)
+    except Exception as e:
+        print(f"❌ Error parsing: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'Error parsing input: {str(e)}'
+        }), 400
 
 if __name__ == '__main__':
     print("🚀 Starting Flask backend server...")
