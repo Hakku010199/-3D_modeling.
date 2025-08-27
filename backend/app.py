@@ -1,36 +1,287 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity
+from flask_bcrypt import Bcrypt
+from flask_sqlalchemy import SQLAlchemy
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')  # Use non-GUI backend for server deployment
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+from matplotlib.animation import PillowWriter
 import base64
 from io import BytesIO
 import re
 import math
 import os
+from datetime import datetime, timedelta
 from typing import Dict, List, Tuple
 # import google.generativeai as genai  # Temporarily commented out
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for React app
 
+# Database configuration
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///graph_visualizer.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['JWT_SECRET_KEY'] = 'graph-visualizer-secret-key-change-in-production'
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
+
+# Initialize extensions
+db = SQLAlchemy(app)
+bcrypt = Bcrypt(app)
+jwt = JWTManager(app)
+
+# Database Models
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationship to saved graphs
+    saved_graphs = db.relationship('SavedGraph', backref='user', lazy=True, cascade='all, delete-orphan')
+    
+    def check_password(self, password):
+        return bcrypt.check_password_hash(self.password_hash, password)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'username': self.username,
+            'email': self.email,
+            'created_at': self.created_at.isoformat(),
+            'total_graphs': len(self.saved_graphs)
+        }
+
+class SavedGraph(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    expression = db.Column(db.Text, nullable=False)
+    graph_type = db.Column(db.String(10), nullable=False)  # '2D' or '3D'
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_favorite = db.Column(db.Boolean, default=False)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'expression': self.expression,
+            'graph_type': self.graph_type,
+            'created_at': self.created_at.isoformat(),
+            'is_favorite': self.is_favorite
+        }
+
+# Create database tables
+with app.app_context():
+    db.create_all()
+    print("Database tables created successfully!")
+
 # Configure Gemini AI (you'll need to set your API key)
 # Set your API key: export GEMINI_API_KEY="your_api_key_here"
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 model = None  # Temporarily disabled
-print("⚠️  Gemini AI temporarily disabled. Basic graph generation will work.")
+print("Gemini AI temporarily disabled. Basic graph generation will work.")
+
+# Authentication Routes
+@app.route('/api/auth/register', methods=['POST'])
+def register():
+    try:
+        data = request.get_json()
+        username = data.get('username', '').strip()
+        email = data.get('email', '').strip()
+        password = data.get('password', '')
+        
+        # Validation
+        if not username or not email or not password:
+            return jsonify({'error': 'All fields are required'}), 400
+        
+        if len(username) < 3:
+            return jsonify({'error': 'Username must be at least 3 characters'}), 400
+            
+        if len(password) < 6:
+            return jsonify({'error': 'Password must be at least 6 characters'}), 400
+        
+        # Check if user already exists
+        if User.query.filter_by(username=username).first():
+            return jsonify({'error': 'Username already exists'}), 400
+        
+        if User.query.filter_by(email=email).first():
+            return jsonify({'error': 'Email already exists'}), 400
+        
+        # Create new user
+        password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
+        new_user = User(username=username, email=email, password_hash=password_hash)
+        
+        db.session.add(new_user)
+        db.session.commit()
+        
+        # Create access token
+        access_token = create_access_token(identity=new_user.id)
+        
+        print(f"New user registered: {username}")
+        
+        return jsonify({
+            'message': 'User created successfully',
+            'access_token': access_token,
+            'user': new_user.to_dict()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Registration error: {e}")
+        return jsonify({'error': f'Registration failed: {str(e)}'}), 500
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    try:
+        data = request.get_json()
+        username = data.get('username', '').strip()
+        password = data.get('password', '')
+        
+        if not username or not password:
+            return jsonify({'error': 'Username and password are required'}), 400
+        
+        # Find user
+        user = User.query.filter_by(username=username).first()
+        
+        if user and user.check_password(password):
+            access_token = create_access_token(identity=user.id)
+            print(f"User logged in: {username}")
+            return jsonify({
+                'message': 'Login successful',
+                'access_token': access_token,
+                'user': user.to_dict()
+            })
+        else:
+            return jsonify({'error': 'Invalid username or password'}), 401
+            
+    except Exception as e:
+        print(f"Login error: {e}")
+        return jsonify({'error': f'Login failed: {str(e)}'}), 500
+
+@app.route('/api/auth/profile', methods=['GET'])
+@jwt_required()
+def get_profile():
+    try:
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        
+        if user:
+            return jsonify({'user': user.to_dict()})
+        else:
+            return jsonify({'error': 'User not found'}), 404
+    except Exception as e:
+        return jsonify({'error': f'Profile fetch failed: {str(e)}'}), 500
+
+@app.route('/api/graphs/save', methods=['POST'])
+@jwt_required()
+def save_graph():
+    try:
+        current_user_id = get_jwt_identity()
+        data = request.get_json()
+        
+        title = data.get('title', f"Graph {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+        expression = data.get('expression')
+        graph_type = data.get('graph_type')
+        
+        if not expression or not graph_type:
+            return jsonify({'error': 'Expression and graph type are required'}), 400
+        
+        # Create new saved graph
+        saved_graph = SavedGraph(
+            user_id=current_user_id,
+            title=title,
+            expression=expression,
+            graph_type=graph_type
+        )
+        
+        db.session.add(saved_graph)
+        db.session.commit()
+        
+        print(f"Graph saved for user {current_user_id}: {title}")
+        
+        return jsonify({
+            'message': 'Graph saved successfully',
+            'graph': saved_graph.to_dict()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Save graph error: {e}")
+        return jsonify({'error': f'Failed to save graph: {str(e)}'}), 500
+
+@app.route('/api/graphs', methods=['GET'])
+@jwt_required()
+def get_user_graphs():
+    try:
+        current_user_id = get_jwt_identity()
+        graphs = SavedGraph.query.filter_by(user_id=current_user_id).order_by(SavedGraph.created_at.desc()).all()
+        
+        return jsonify({
+            'graphs': [graph.to_dict() for graph in graphs]
+        })
+        
+    except Exception as e:
+        print(f"Get graphs error: {e}")
+        return jsonify({'error': f'Failed to fetch graphs: {str(e)}'}), 500
+
+@app.route('/api/graphs/<int:graph_id>/favorite', methods=['PUT'])
+@jwt_required()
+def toggle_favorite(graph_id):
+    try:
+        current_user_id = get_jwt_identity()
+        graph = SavedGraph.query.filter_by(id=graph_id, user_id=current_user_id).first()
+        
+        if not graph:
+            return jsonify({'error': 'Graph not found'}), 404
+            
+        graph.is_favorite = not graph.is_favorite
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Favorite status updated',
+            'is_favorite': graph.is_favorite
+        })
+        
+    except Exception as e:
+        print(f"Toggle favorite error: {e}")
+        return jsonify({'error': f'Failed to update favorite: {str(e)}'}), 500
+
+@app.route('/api/graphs/<int:graph_id>', methods=['DELETE'])
+@jwt_required()
+def delete_graph(graph_id):
+    try:
+        current_user_id = get_jwt_identity()
+        graph = SavedGraph.query.filter_by(id=graph_id, user_id=current_user_id).first()
+        
+        if not graph:
+            return jsonify({'error': 'Graph not found'}), 404
+            
+        db.session.delete(graph)
+        db.session.commit()
+        
+        return jsonify({'message': 'Graph deleted successfully'})
+        
+    except Exception as e:
+        print(f"Delete graph error: {e}")
+        return jsonify({'error': f'Failed to delete graph: {str(e)}'}), 500
 
 @app.route('/api/generate', methods=['POST'])
+@jwt_required(optional=True)  # Make authentication optional for now
 def generate_graph():
+    current_user_id = get_jwt_identity()  # None if not authenticated
+    
     data = request.get_json()
     function_type = data.get('functionType')
     expression = data.get('expression')
     
-    print(f"📨 Received request: type={function_type}, expression={expression}")
+    print(f"📨 Received request: type={function_type}, expression={expression}, user={current_user_id}")
     
     if not expression:
-        print("❌ No expression provided")
+        print("No expression provided")
         return jsonify({
             'status': 'error',
             'message': 'No expression provided'
@@ -40,23 +291,25 @@ def generate_graph():
         if function_type == '2D':
             print("🔄 Generating 2D graph...")
             graph_data = generate_2d_graph(expression)
-            print("✅ 2D graph generated successfully!")
+            print("2D graph generated successfully!")
             return jsonify({
                 'status': 'success',
                 'type': '2D',
-                'data': graph_data
+                'data': graph_data,
+                'can_save': current_user_id is not None
             })
         elif function_type == '3D':
             print("🔄 Generating 3D model...")
             model_data = generate_3d_model(expression)
-            print("✅ 3D model generated successfully!")
+            print("3D model generated successfully!")
             return jsonify({
                 'status': 'success',
                 'type': '3D', 
-                'data': model_data
+                'data': model_data,
+                'can_save': current_user_id is not None
             })
         else:
-            print(f"❌ Invalid function type: {function_type}")
+            print(f"Invalid function type: {function_type}")
             return jsonify({
                 'status': 'error',
                 'message': 'Invalid function type'
@@ -99,7 +352,10 @@ def safe_eval_expression(expression, x_values):
         return x_values**2
 
 def safe_eval_polar_expression(expression, theta_values, a=1, n=1):
-    """Safely evaluate polar mathematical expressions like rose curves"""
+    """Safely evaluate polar mathematical expressions (rose curves, cardioids, etc.)"""
+    original_expression = expression
+    print(f"Evaluating polar expression: '{expression}' with a={a}, n={n}")
+    
     # Replace common mathematical notation
     expression = expression.lower()
     expression = expression.replace('^', '**')  # Handle exponents
@@ -113,6 +369,12 @@ def safe_eval_polar_expression(expression, theta_values, a=1, n=1):
     expression = expression.replace('*t*', '*theta*')  # t between operators
     expression = expression.replace('+t+', '+theta+')  # t with plus
     expression = expression.replace('-t-', '-theta-')  # t with minus
+    
+    # Handle parentheses multiplication (e.g., "2(1 + cos(theta))" -> "2*(1 + cos(theta))")
+    import re
+    expression = re.sub(r'(\d+)\(', r'\1*(', expression)
+    
+    print(f"Cleaned expression: '{expression}'")
     
     # Create safe environment for evaluation
     safe_dict = {
@@ -135,10 +397,29 @@ def safe_eval_polar_expression(expression, theta_values, a=1, n=1):
     try:
         # Evaluate the expression
         result = eval(expression, safe_dict)
+        print(f"Successfully evaluated expression")
         return result
-    except:
-        # Fallback to simple rose curve
-        return np.cos(2 * theta_values)
+    except Exception as e:
+        print(f"Error evaluating polar expression '{expression}': {e}")
+        
+        # Better fallback based on expression type
+        if "1 + cos" in expression or "1 - cos" in expression:
+            print(f"🫀 Fallback to cardioid pattern")
+            # Cardioid fallback
+            if "1 + cos" in expression:
+                return 1 + np.cos(theta_values)
+            else:
+                return 1 - np.cos(theta_values)
+        elif "1 + sin" in expression or "1 - sin" in expression:
+            print(f"🫀 Fallback to cardioid pattern (sin)")
+            if "1 + sin" in expression:
+                return 1 + np.sin(theta_values)
+            else:
+                return 1 - np.sin(theta_values)
+        else:
+            print(f"🔄 Falling back to default rose curve a*cos(n*theta) with a={a}, n={n}")
+            # Fallback to simple rose curve
+            return a * np.cos(n * theta_values)
 
 def detect_polar_equation(expression):
     """Detect if the expression is a polar equation (contains r, theta, etc.)"""
@@ -324,21 +605,57 @@ def generate_cartesian_graph(expression):
         }
 
 def extract_rose_parameters(expression):
-    """Extract parameters a and n from rose curve expressions"""
+    """Extract parameters a and n from polar expressions (rose curves, cardioids, etc.)"""
     expr = expression.lower()
     
     # Default values
     a = 1
     n = 1
     
-    # Try to extract 'a' coefficient
     import re
-    a_match = re.search(r'r\s*=\s*(\d+(?:\.\d+)?)\s*\*?\s*cos', expr)
+    
+    # Handle simple cardioids: r = 1 + cos(θ) or r = 1 - cos(θ)
+    simple_cardioid = re.search(r'r\s*=\s*1\s*[+-]\s*cos', expr)
+    if simple_cardioid:
+        return 1, 1  # Standard cardioid parameters
+        
+    # Handle simple cardioids with sin: r = 1 + sin(θ) or r = 1 - sin(θ)
+    simple_cardioid_sin = re.search(r'r\s*=\s*1\s*[+-]\s*sin', expr)
+    if simple_cardioid_sin:
+        return 1, 1  # Standard cardioid parameters
+    
+    # Handle scaled cardioids: r = a(1 + cos(θ)) or r = a(1 - cos(θ))
+    cardioid_match = re.search(r'r\s*=\s*(\d+(?:\.\d+)?)\s*\*?\s*\(\s*1\s*[+-]\s*cos', expr)
+    if cardioid_match:
+        a = float(cardioid_match.group(1))
+        return a, 1  # n=1 for cardioids
+    
+    # Handle cardioids: r = a + a*cos(θ) format
+    cardioid_expanded = re.search(r'r\s*=\s*(\d+(?:\.\d+)?)\s*[+-]\s*\1\s*\*?\s*cos', expr)
+    if cardioid_expanded:
+        a = float(cardioid_expanded.group(1))
+        return a, 1
+    
+    # Handle limacons: r = a + b*cos(θ)
+    limacon_match = re.search(r'r\s*=\s*(\d+(?:\.\d+)?)\s*[+-]\s*(\d+(?:\.\d+)?)\s*\*?\s*cos', expr)
+    if limacon_match:
+        a = float(limacon_match.group(1))
+        return a, 1
+    
+    # Handle rose curves: r = a*cos(n*θ) or r = a*sin(n*θ)
+    rose_match = re.search(r'r\s*=\s*(\d+(?:\.\d+)?)\s*\*?\s*[cossin]+\s*\(\s*(\d+(?:\.\d+)?)\s*\*', expr)
+    if rose_match:
+        a = float(rose_match.group(1))
+        n = float(rose_match.group(2))
+        return a, n
+    
+    # Try to extract 'a' coefficient from general patterns
+    a_match = re.search(r'r\s*=\s*(\d+(?:\.\d+)?)', expr)
     if a_match:
         a = float(a_match.group(1))
     
-    # Try to extract 'n' from cos(nθ) or cos(n*theta)
-    n_match = re.search(r'cos\s*\(\s*(\d+(?:\.\d+)?)\s*\*?\s*[θϴtheta]', expr)
+    # Try to extract 'n' from cos(nθ) or sin(nθ)
+    n_match = re.search(r'[cossin]+\s*\(\s*(\d+(?:\.\d+)?)\s*\*?\s*[θϴtheta]', expr)
     if n_match:
         n = float(n_match.group(1))
     
@@ -350,6 +667,36 @@ def analyze_polar_function(theta, r, expression, a, n):
     
     if len(finite_r) == 0:
         return {'error': 'No finite values to analyze'}
+    
+def analyze_polar_function(theta, r, expression, a, n):
+    """Analyze polar functions like rose curves and cardioids"""
+    finite_r = r[np.isfinite(r)]
+    
+    if len(finite_r) == 0:
+        return {'error': 'No finite values to analyze'}
+    
+    # Check if this is a cardioid
+    expr_lower = expression.lower()
+    is_cardioid = ('1 + cos' in expr_lower or '1 - cos' in expr_lower or 
+                   '1 + sin' in expr_lower or '1 - sin' in expr_lower)
+    
+    if is_cardioid:
+        # This is a cardioid
+        analysis = {
+            'type': 'Cardioid (Heart-shaped curve)',
+            'equation_type': f'Cardioid: {expression}',
+            'petals': '1 heart lobe',
+            'max_radius': f'{finite_r.max():.2f}',
+            'symmetry': 'Heart-shaped with cusp',
+            'domain': 'θ ∈ [0, 2π]',
+            'properties': [
+                'Heart-shaped curve (cardioid)',
+                f'Maximum radius: {finite_r.max():.2f}',
+                'Has a characteristic cusp point',
+                'Named from Greek "kardia" (heart)'
+            ]
+        }
+        return analysis
     
     # Determine number of petals for rose curves
     if 'cos' in expression.lower():
@@ -876,6 +1223,88 @@ def generate_3d_fallback(expression):
             'analysis': {'error': f'Failed to generate 3D plot: {str(e)}'}
         }
 
+def generate_3d_fallback_animated(expression):
+    """Generate animated fallback 3D plot when other methods fail"""
+    try:
+        from mpl_toolkits.mplot3d import Axes3D
+        
+        x = np.linspace(-5, 5, 50)
+        y = np.linspace(-5, 5, 50)
+        X, Y = np.meshgrid(x, y)
+        Z_full = X**2 + Y**2  # Simple paraboloid
+        
+        # Create animated growing effect
+        fig = plt.figure(figsize=(10, 8))
+        ax = fig.add_subplot(111, projection='3d')
+        
+        # Animation parameters
+        frames = 30  # Number of animation frames (2 seconds at 15 fps)
+        z_min, z_max = np.min(Z_full), np.max(Z_full)
+        growth_levels = np.linspace(z_min, z_max, frames)
+        
+        def animate_frame(frame):
+            ax.clear()
+            
+            # Calculate current height for growing effect
+            current_max_height = growth_levels[frame]
+            
+            # Clip Z values to current height (growing effect)
+            Z_clipped = np.where(Z_full <= current_max_height, Z_full, np.nan)
+            
+            # Create surface plot
+            surf = ax.plot_surface(X, Y, Z_clipped, cmap='viridis', alpha=0.7)
+            
+            # Set labels and title
+            ax.set_title(f'Animated Fallback 3D: {expression}', fontsize=14, fontweight='bold')
+            ax.set_xlabel('x', fontsize=12)
+            ax.set_ylabel('y', fontsize=12)
+            ax.set_zlabel('z', fontsize=12)
+            
+            # Set consistent axis limits
+            ax.set_xlim([-5, 5])
+            ax.set_ylim([-5, 5])
+            ax.set_zlim([z_min, z_max])
+            
+            # Add progress indicator
+            progress = (frame + 1) / frames * 100
+            ax.text2D(0.02, 0.98, f'Growth: {progress:.0f}%', transform=ax.transAxes, 
+                     fontsize=10, verticalalignment='top',
+                     bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+        
+        # Create animation
+        anim = animation.FuncAnimation(fig, animate_frame, frames=frames, interval=67, repeat=True)
+        
+        # Save as GIF
+        gif_buffer = BytesIO()
+        writer = PillowWriter(fps=15)
+        anim.save(gif_buffer, writer=writer)
+        gif_buffer.seek(0)
+        gif_base64 = base64.b64encode(gif_buffer.getvalue()).decode()
+        plt.close()
+        
+        return {
+            'image': f'data:image/gif;base64,{gif_base64}',
+            'expression': f'{expression} (animated fallback)',
+            'animation': True,
+            'duration': '2 seconds',
+            'analysis': {
+                'type': '3D Animated Fallback Surface',
+                'description': 'Default animated paraboloid z = x² + y²',
+                'note': f'Could not render "{expression}" in 3D - showing animated fallback',
+                'animation_frames': frames,
+                'growth_effect': f'Surface grows from {z_min:.1f} to {z_max:.1f}'
+            }
+        }
+        
+    except Exception as e:
+        # Ultimate fallback
+        return {
+            'image': None,
+            'expression': expression,
+            'animation': False,
+            'analysis': {'error': f'Failed to generate animated 3D plot: {str(e)}'}
+        }
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
@@ -900,17 +1329,17 @@ def parse_natural_language_endpoint():
     
     try:
         result = parse_natural_language(user_input)
-        print(f"✅ Parsed result: {result}")
+        print(f"Parsed result: {result}")
         return jsonify(result)
     except Exception as e:
-        print(f"❌ Error parsing: {e}")
+        print(f"Error parsing: {e}")
         return jsonify({
             'success': False,
             'error': f'Error parsing input: {str(e)}'
         }), 400
 
 if __name__ == '__main__':
-    print("🚀 Starting Flask backend server...")
-    print("📊 Graph generation API ready!")
-    print("🌐 Access at: http://localhost:5000")
+    print("Starting Flask backend server...")
+    print("Graph generation API ready!")
+    print("Access at: http://localhost:5000")
     app.run(debug=True, host='0.0.0.0', port=5000)

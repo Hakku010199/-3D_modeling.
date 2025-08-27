@@ -51,7 +51,6 @@ export default function FunctionInput({ functionInput, setFunctionInput, onGener
     <div className="input-section">
       {/* Natural Language Input */}
       <div className="nlp-section">
-        <h3>🗣️ Natural Language Input (NEW!)</h3>
         <div className="nlp-input-group">
           <input
             type="text"
@@ -66,7 +65,7 @@ export default function FunctionInput({ functionInput, setFunctionInput, onGener
             onClick={handleNaturalLanguageInput}
             disabled={nlpLoading}
           >
-            {nlpLoading ? '🔄' : '🧠'} Parse
+            {nlpLoading ? '' : ''} Parse
           </button>
         </div>
         
@@ -91,7 +90,7 @@ export default function FunctionInput({ functionInput, setFunctionInput, onGener
       
       {/* Original Mathematical Input */}
       <div className="math-section">
-        <h3>📐 Mathematical Expression</h3>
+        <h3> Mathematical Expression</h3>
         <textarea
           value={functionInput}
           onChange={(e) => setFunctionInput(e.target.value)}

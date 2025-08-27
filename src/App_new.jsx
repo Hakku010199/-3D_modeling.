@@ -6,8 +6,6 @@ import FunctionInput from './components/FunctionInput';
 import Graph2DSection from './components/Graph2DSection';
 import Graph3DSection from './components/Graph3DSection';
 import AuthModal from './components/Auth/AuthModal';
-import UserHistory from './components/UserHistory/UserHistory';
-import PolarCoordinatesIntroduction from './components/Introduction';
 import './App.css';
 
 function AppContent() {
@@ -19,13 +17,10 @@ function AppContent() {
   const [graphData2D, setGraphData2D] = useState(null);
   const [graphData3D, setGraphData3D] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [historyRefresh, setHistoryRefresh] = useState(0); // Counter to trigger history refresh
   const graph2DRef = useRef(null);
   const graph3DRef = useRef(null);
   
   const { isAuthenticated, user, logout, saveGraph } = useAuth();
-
-  console.log('App state:', { isAuthenticated, user });
 
   const handleSaveGraph = async (title, graphType, graphData) => {
     if (!isAuthenticated) {
@@ -33,27 +28,7 @@ function AppContent() {
       return { success: false, error: 'Please sign in to save graphs' };
     }
     
-    try {
-      const result = await saveGraph(title, functionInput, graphType);
-      if (result.success) {
-        // Trigger history refresh
-        setHistoryRefresh(prev => prev + 1);
-      }
-      return result;
-    } catch (error) {
-      console.error('Failed to save graph:', error);
-      return { success: false, error: 'Failed to save graph' };
-    }
-  };
-
-  const handleLoadGraph = async (graph) => {
-    setFunctionInput(graph.expression);
-    
-    if (graph.graph_type === '2D') {
-      await handleGenerate2D();
-    } else if (graph.graph_type === '3D') {
-      await handleRender3D();
-    }
+    return await saveGraph(title, functionInput, graphType);
   };
 
   const handleGenerate2D = async () => {
@@ -70,12 +45,6 @@ function AppContent() {
       if (response.data.status === 'success') {
         setGraphData2D(response.data.data);
         setShow2D(true);
-        
-        // Auto-save graph if user is authenticated
-        if (isAuthenticated) {
-          await handleSaveGraph(`2D Graph: ${functionInput}`, '2D', response.data.data);
-        }
-        
         setTimeout(() => graph2DRef.current.scrollIntoView({ behavior: 'smooth' }), 300);
       }
     } catch (err) {
@@ -100,12 +69,6 @@ function AppContent() {
       if (response.data.status === 'success') {
         setGraphData3D(response.data.data);
         setShow3D(true);
-        
-        // Auto-save graph if user is authenticated
-        if (isAuthenticated) {
-          await handleSaveGraph(`3D Model: ${functionInput}`, '3D', response.data.data);
-        }
-        
         setTimeout(() => graph3DRef.current.scrollIntoView({ behavior: 'smooth' }), 300);
       }
     } catch (err) {
@@ -117,7 +80,7 @@ function AppContent() {
   };
 
   return (
-    <div className={`app ${isAuthenticated ? 'with-history' : ''}`}>
+    <div className="app">
       <Header 
         user={user}
         isAuthenticated={isAuthenticated}
@@ -125,50 +88,37 @@ function AppContent() {
         onLogout={logout}
       />
       
-      <div className={`app-content ${isAuthenticated ? 'with-history' : ''}`}>
-        <FunctionInput 
-          functionInput={functionInput} 
-          setFunctionInput={setFunctionInput} 
-          onGenerate2D={handleGenerate2D} 
-          onRender3D={handleRender3D}
-          loading={loading}
-          isAuthenticated={isAuthenticated}
-        />
-        
-        <PolarCoordinatesIntroduction />
-        
-        {error && <div className="error-message">{error}</div>}
-        
-        {show2D && (
-          <div ref={graph2DRef}>
-            <Graph2DSection 
-              input={functionInput} 
-              graphData={graphData2D} 
-              onSave={(title) => handleSaveGraph(title, '2D', graphData2D)}
-              canSave={isAuthenticated}
-            />
-          </div>
-        )}
-        
-        {show3D && (
-          <div ref={graph3DRef}>
-            <Graph3DSection 
-              input={functionInput} 
-              graphData={graphData3D} 
-              onSave={(title) => handleSaveGraph(title, '3D', graphData3D)}
-              canSave={isAuthenticated}
-            />
-          </div>
-        )}
-      </div>
+      <FunctionInput 
+        functionInput={functionInput} 
+        setFunctionInput={setFunctionInput} 
+        onGenerate2D={handleGenerate2D} 
+        onRender3D={handleRender3D}
+        loading={loading}
+        isAuthenticated={isAuthenticated}
+      />
       
-      {isAuthenticated && (
-        <UserHistory 
-          user={user}
-          onLoadGraph={handleLoadGraph} 
-          isVisible={true}
-          refreshTrigger={historyRefresh}
-        />
+      {error && <div className="error-message">{error}</div>}
+      
+      {show2D && (
+        <div ref={graph2DRef}>
+          <Graph2DSection 
+            input={functionInput} 
+            graphData={graphData2D} 
+            onSave={(title) => handleSaveGraph(title, '2D', graphData2D)}
+            canSave={isAuthenticated}
+          />
+        </div>
+      )}
+      
+      {show3D && (
+        <div ref={graph3DRef}>
+          <Graph3DSection 
+            input={functionInput} 
+            graphData={graphData3D} 
+            onSave={(title) => handleSaveGraph(title, '3D', graphData3D)}
+            canSave={isAuthenticated}
+          />
+        </div>
       )}
       
       <AuthModal 

@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mathematical Graph Visualizer - Live Preview</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Times New Roman', serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .preview-header {
+            text-align: center;
+            padding: 40px 20px;
+            background: rgba(0,0,0,0.3);
+        }
+        
+        .preview-header h1 {
+            font-size: 4em;
+            margin-bottom: 20px;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.5);
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .preview-header p {
+            font-size: 1.5em;
+            opacity: 0.9;
+            margin: 10px 0;
+        }
+        
+        .status-banner {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            padding: 20px;
+            text-align: center;
+            font-size: 1.2em;
+            font-weight: bold;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        
+        .access-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .access-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 30px;
+            border: 2px solid rgba(255,255,255,0.3);
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .access-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        
+        .access-card h3 {
+            color: #FFD700;
+            font-size: 2em;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .access-link {
+            display: block;
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            color: white;
+            text-decoration: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.3em;
+            margin: 20px 0;
+            transition: transform 0.2s ease;
+        }
+        
+        .access-link:hover {
+            transform: scale(1.05);
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            padding: 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .feature-card {
+            background: rgba(255,255,255,0.08);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255,255,255,0.2);
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            background: rgba(255,255,255,0.12);
+            transform: translateY(-5px);
+        }
+        
+        .feature-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+            display: block;
+        }
+        
+        .feature-card h4 {
+            color: #4ECDC4;
+            font-size: 1.4em;
+            margin-bottom: 15px;
+        }
+        
+        .feature-card p {
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+        
+        .demo-section {
+            background: rgba(0,0,0,0.4);
+            padding: 40px;
+            margin: 40px 0;
+        }
+        
+        .demo-section h3 {
+            color: #FFD700;
+            font-size: 2.5em;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .demo-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .demo-step {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .demo-step::before {
+            content: attr(data-step);
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            background: #FFD700;
+            color: #000;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        
+        .demo-step h4 {
+            margin: 15px 0;
+            color: #FFD700;
+        }
+        
+        .sample-expressions {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 40px;
+            border: 2px solid rgba(255,215,0,0.3);
+        }
+        
+        .sample-expressions h3 {
+            color: #FFD700;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+        
+        .expressions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }
+        
+        .expression-item {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #4ECDC4;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .expression-code {
+            color: #4ECDC4;
+            font-weight: bold;
+        }
+        
+        .expression-desc {
+            color: #ccc;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        .history-showcase {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 20px;
+            padding: 40px;
+            margin: 40px;
+            text-align: center;
+            border: 3px solid #FFD700;
+        }
+        
+        .history-showcase h3 {
+            color: #FFD700;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+        
+        .history-features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .history-feature {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .footer {
+            background: rgba(0,0,0,0.5);
+            padding: 30px;
+            text-align: center;
+            margin-top: 40px;
+        }
+        
+        @media (max-width: 768px) {
+            .access-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .preview-header h1 {
+                font-size: 2.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="preview-header">
+        <h1>Mathematical Graph Visualizer</h1>
+        <p>Advanced 2D/3D Graph Generation with Authentication & History</p>
+        <p>Complete Full-Stack Application</p>
+    </div>
+    
+    <div class="status-banner pulse">
+        🟢 SYSTEM ONLINE - ALL SERVICES RUNNING
+    </div>
+    
+    <div class="access-section">
+        <div class="access-card">
+            <h3>🌐 Frontend Application</h3>
+            <p>React + Vite Development Server</p>
+            <a href="http://localhost:5174" target="_blank" class="access-link">
+                Open Application →
+            </a>
+            <p><strong>Port:</strong> 5174</p>
+            <p><strong>Status:</strong> ✅ Active</p>
+            <p><strong>Features:</strong> Authentication UI, Graph Generation, History Sidebar</p>
+        </div>
+        
+        <div class="access-card">
+            <h3>⚙️ Backend API</h3>
+            <p>Flask + SQLite Database Server</p>
+            <a href="http://localhost:5000/api/health" target="_blank" class="access-link">
+                Check API Health →
+            </a>
+            <p><strong>Port:</strong> 5000</p>
+            <p><strong>Status:</strong> ✅ Active</p>
+            <p><strong>Features:</strong> Graph Generation, User Auth, Data Storage</p>
+        </div>
+    </div>
+    
+    <div class="demo-section">
+        <h3>🎯 How to Use Your Application</h3>
+        <div class="demo-steps">
+            <div class="demo-step" data-step="1">
+                <h4>Open Application</h4>
+                <p>Click the frontend link above to access your graph visualizer</p>
+            </div>
+            <div class="demo-step" data-step="2">
+                <h4>Register/Login</h4>
+                <p>Create an account or sign in to unlock history features</p>
+            </div>
+            <div class="demo-step" data-step="3">
+                <h4>Generate Graphs</h4>
+                <p>Enter mathematical expressions or use natural language</p>
+            </div>
+            <div class="demo-step" data-step="4">
+                <h4>View History</h4>
+                <p>See the sidebar appear with all your saved graphs</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="history-showcase">
+        <h3>📊 History Sidebar Features</h3>
+        <p>The blue gradient sidebar appears on the RIGHT side when you're logged in</p>
+        <div class="history-features">
+            <div class="history-feature">
+                <strong>📈 Statistics</strong>
+                <p>Total graphs & favorites count</p>
+            </div>
+            <div class="history-feature">
+                <strong>🔍 Filtering</strong>
+                <p>All, Favorites, 2D, 3D views</p>
+            </div>
+            <div class="history-feature">
+                <strong>⚡ Quick Actions</strong>
+                <p>Load, Delete, Favorite graphs</p>
+            </div>
+            <div class="history-feature">
+                <strong>🔄 Auto-Save</strong>
+                <p>Graphs save automatically</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="features-grid">
+        <div class="feature-card">
+            <span class="feature-icon">🧮</span>
+            <h4>Mathematical Engine</h4>
+            <p>Advanced expression parsing with support for cartesian, polar, and parametric equations. Enhanced cardioid detection with proper parentheses handling.</p>
+        </div>
+        
+        <div class="feature-card">
+            <span class="feature-icon">🤖</span>
+            <h4>Natural Language Processing</h4>
+            <p>Convert natural language inputs like "draw rose with 4 petals" into mathematical expressions automatically.</p>
+        </div>
+        
+        <div class="feature-card">
+            <span class="feature-icon">🔐</span>
+            <h4>User Authentication</h4>
+            <p>Secure JWT-based authentication system with user registration, login, and session management.</p>
+        </div>
+        
+        <div class="feature-card">
+            <span class="feature-icon">📊</span>
+            <h4>History Management</h4>
+            <p>Complete graph history with favorites, filtering, and quick reload functionality in a beautiful sidebar.</p>
+        </div>
+        
+        <div class="feature-card">
+            <span class="feature-icon">📈</span>
+            <h4>2D Visualization</h4>
+            <p>High-quality 2D graph generation with matplotlib backend, supporting complex mathematical functions.</p>
+        </div>
+        
+        <div class="feature-card">
+            <span class="feature-icon">🌐</span>
+            <h4>3D Modeling</h4>
+            <p>Interactive 3D surface plots and models with advanced rendering capabilities.</p>
+        </div>
+        
+        <div class="feature-card">
+            <span class="feature-icon">💾</span>
+            <h4>Auto-Save System</h4>
+            <p>Automatic graph saving for authenticated users with real-time history updates.</p>
+        </div>
+        
+        <div class="feature-card">
+            <span class="feature-icon">🎨</span>
+            <h4>Clean Interface</h4>
+            <p>Symbol-free, professional UI with responsive design and smooth animations.</p>
+        </div>
+    </div>
+    
+    <div class="sample-expressions">
+        <h3>🔬 Try These Sample Expressions</h3>
+        <div class="expressions-grid">
+            <div class="expression-item">
+                <div class="expression-code">r = 1 + cos(theta)</div>
+                <div class="expression-desc">Classic cardioid shape</div>
+            </div>
+            <div class="expression-item">
+                <div class="expression-code">r = 2(1 + sin(theta))</div>
+                <div class="expression-desc">Larger cardioid</div>
+            </div>
+            <div class="expression-item">
+                <div class="expression-code">x^2 + y^2 = 25</div>
+                <div class="expression-desc">Circle with radius 5</div>
+            </div>
+            <div class="expression-item">
+                <div class="expression-code">y = x^2</div>
+                <div class="expression-desc">Simple parabola</div>
+            </div>
+            <div class="expression-item">
+                <div class="expression-code">"draw rose with 3 petals"</div>
+                <div class="expression-desc">Natural language input</div>
+            </div>
+            <div class="expression-item">
+                <div class="expression-code">"create a heart shape"</div>
+                <div class="expression-desc">NLP cardioid generation</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <h3>🚀 Your Complete Graph Visualization System</h3>
+        <p>All features implemented, tested, and working perfectly!</p>
+        <p><strong>Ready for demonstration and deployment</strong></p>
+    </div>
+</body>
+</html>

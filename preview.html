@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Visualizer Preview</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Times New Roman', serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .preview-container {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 3em;
+            margin: 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+            margin: 10px 0;
+        }
+        
+        .status {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        
+        .status h3 {
+            margin-top: 0;
+            color: #4CAF50;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .feature-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid rgba(255,255,255,0.3);
+            transition: transform 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .feature-card h4 {
+            color: #FFD700;
+            margin-top: 0;
+        }
+        
+        .demo-section {
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .access-info {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .access-info a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        
+        .history-demo {
+            border: 2px solid #FFD700;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            background: rgba(255, 215, 0, 0.1);
+        }
+        
+        .history-demo h3 {
+            color: #FFD700;
+            margin-top: 0;
+        }
+        
+        .step {
+            margin: 15px 0;
+            padding: 10px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div class="preview-container">
+        <div class="header">
+            <h1>Mathematical Graph Visualizer</h1>
+            <p>Advanced 2D/3D Graph Generation with User History</p>
+        </div>
+        
+        <div class="access-info">
+            <h3>Access Your Application</h3>
+            <p><strong>Frontend:</strong> <a href="http://localhost:5174" target="_blank">http://localhost:5174</a></p>
+            <p><strong>Backend API:</strong> <a href="http://localhost:5000" target="_blank">http://localhost:5000</a></p>
+        </div>
+        
+        <div class="status">
+            <h3>System Status: ONLINE</h3>
+            <p>✅ Flask Backend Server Running (Port 5000)</p>
+            <p>✅ React Frontend Server Running (Port 5174)</p>
+            <p>✅ SQLite Database Connected</p>
+            <p>✅ User Authentication System Active</p>
+            <p>✅ History Sidebar Implemented</p>
+            <p>✅ All Emoji Symbols Removed</p>
+        </div>
+        
+        <div class="history-demo">
+            <h3>🎯 How to See Your History Sidebar</h3>
+            <div class="step">
+                <strong>Step 1:</strong> Open the application at <a href="http://localhost:5174" target="_blank">http://localhost:5174</a>
+            </div>
+            <div class="step">
+                <strong>Step 2:</strong> Click "Sign Up" in the top-right corner to create an account (or "Sign In" if you have one)
+            </div>
+            <div class="step">
+                <strong>Step 3:</strong> Once logged in, the history sidebar will automatically appear on the RIGHT side of the page
+            </div>
+            <div class="step">
+                <strong>Step 4:</strong> Generate some graphs (try "r = 1 + cos(theta)" or "x^2 + y^2") to populate your history
+            </div>
+            <div class="step">
+                <strong>Step 5:</strong> Use the sidebar to view, favorite, filter, and reload your saved graphs
+            </div>
+        </div>
+        
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h4>Mathematical Expression Support</h4>
+                <p>Support for cartesian, polar, and parametric equations with enhanced cardioid detection and proper expression evaluation.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h4>Natural Language Processing</h4>
+                <p>Type commands like "draw rose with 4 petals" and the system converts them to mathematical expressions automatically.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h4>User Authentication</h4>
+                <p>Secure user registration and login system with JWT tokens for session management and graph saving.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h4>History Sidebar</h4>
+                <p>Right-side panel showing all your saved graphs with filtering, favorites, and quick reload functionality.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h4>2D & 3D Visualization</h4>
+                <p>Generate both 2D plots and 3D surface models with matplotlib backend and interactive controls.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h4>Cardioid Dataset</h4>
+                <p>Comprehensive database of 18 different cardioid equations organized in 5 categories with metadata.</p>
+            </div>
+        </div>
+        
+        <div class="demo-section">
+            <h3>Sample Expressions to Try:</h3>
+            <ul>
+                <li><code>r = 1 + cos(theta)</code> - Classic cardioid</li>
+                <li><code>r = 2(1 + sin(theta))</code> - Larger cardioid</li>
+                <li><code>x^2 + y^2 = 25</code> - Circle</li>
+                <li><code>y = x^2</code> - Parabola</li>
+                <li><code>"draw rose with 3 petals"</code> - Natural language</li>
+                <li><code>"create a heart shape"</code> - Natural language</li>
+            </ul>
+        </div>
+        
+        <div class="status">
+            <h3>Recent Updates:</h3>
+            <p>✅ Fixed cardioid expression evaluation bug</p>
+            <p>✅ Added comprehensive user history system</p>
+            <p>✅ Implemented favorites and filtering</p>
+            <p>✅ Removed all emoji symbols from codebase</p>
+            <p>✅ Added JWT authentication for API endpoints</p>
+            <p>✅ Enhanced polar coordinate support</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,273 @@
+/* UserHistory.css - Clean styling without symbols */
+.user-history-sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 350px;
+  height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-left: 2px solid #e9ecef;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  z-index: 500;
+  overflow: hidden;
+  color: white;
+}
+
+.history-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.history-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.refresh-button {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.3s;
+}
+
+.refresh-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.refresh-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.history-stats {
+  display: flex;
+  padding: 15px 20px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.stat {
+  flex: 1;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-number {
+  font-size: 24px;
+  font-weight: bold;
+  color: #667eea;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
+}
+
+.history-filters {
+  padding: 15px 20px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.filter-select {
+  width: 100%;
+  padding: 10px;
+  border: 2px solid #e9ecef;
+  border-radius: 6px;
+  font-size: 14px;
+  background: white;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.history-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.history-loading,
+.history-error,
+.history-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: #666;
+  font-style: italic;
+}
+
+.history-error {
+  color: #e74c3c;
+}
+
+.history-item {
+  border-bottom: 1px solid #f1f3f4;
+  padding: 15px 20px;
+  transition: background 0.3s;
+}
+
+.history-item:hover {
+  background: #f8f9fa;
+}
+
+.graph-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.graph-type {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  color: white;
+}
+
+.graph-type.type-2d {
+  background: #3498db;
+}
+
+.graph-type.type-3d {
+  background: #e74c3c;
+}
+
+.favorite-button {
+  background: none;
+  border: 1px solid #ddd;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.favorite-button:hover {
+  background: #f8f9fa;
+}
+
+.favorite-button.favorited {
+  background: #f39c12;
+  color: white;
+  border-color: #f39c12;
+}
+
+.graph-title {
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.graph-expression {
+  background: #2c3e50;
+  color: white;
+  padding: 8px 10px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  margin-bottom: 8px;
+  word-break: break-all;
+}
+
+.graph-date {
+  color: #666;
+  font-size: 11px;
+  margin-bottom: 10px;
+}
+
+.graph-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.load-button,
+.delete-button {
+  flex: 1;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+  transition: background 0.3s;
+}
+
+.load-button {
+  background: #27ae60;
+  color: white;
+}
+
+.load-button:hover {
+  background: #229954;
+}
+
+.delete-button {
+  background: #e74c3c;
+  color: white;
+}
+
+.delete-button:hover {
+  background: #c0392b;
+}
+
+.history-footer {
+  padding: 15px 20px;
+  border-top: 1px solid #e9ecef;
+  background: #f8f9fa;
+}
+
+.clear-button {
+  width: 100%;
+  padding: 10px;
+  background: #95a5a6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.3s;
+}
+
+.clear-button:hover {
+  background: #7f8c8d;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .user-history-sidebar {
+    width: 100%;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+  }
+  
+  .user-history-sidebar.mobile-visible {
+    transform: translateX(0);
+  }
+}
+
+/* Main content adjustment when sidebar is visible */
+.app-content.with-history {
+  margin-right: 350px;
+  transition: margin-right 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  .app-content.with-history {
+    margin-right: 0;
+  }
+}

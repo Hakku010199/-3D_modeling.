@@ -1,13 +1,32 @@
 .header {
-  text-align: center;
+  text-align: left;
   margin-bottom: 50px;
   padding: 30px 0;
+  background: white;
+  color: black;
+  border-radius: 0 0 20px 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  gap: 40px;
+}
+
+.title-section {
+  flex: 1;
+  text-align: left;
 }
 
 .header h1 {
   font-size: 2em;
-  color: #3de937;
-  margin-bottom: 40px;
+  color: black;
+  margin-bottom: 20px;
   position: relative;
 }
 
@@ -28,25 +47,239 @@
   }
 }
 
-@keyframes slideInFade {
-  0% {
-    opacity: 0;
-    transform: translateY(-30px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.header p {
+.description p {
   font-size: 1.1em;
   line-height: 1.6;
   text-align: left;
-  padding: 0 20px;
-  margin-bottom: 25px;  /* Added space between paragraphs */
+  margin-bottom: 15px;
+  color: black;
 }
 
-.header p:last-child {
-  margin-bottom: 0;    /* Remove bottom margin from last paragraph */
+.key-concepts {
+  margin-top: 25px;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 20px;
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.key-concepts h3 {
+  font-size: 1.3em;
+  margin-bottom: 20px;
+  color: black;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.2);
+  padding-bottom: 8px;
+}
+
+.concept-group {
+  margin-bottom: 18px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 8px;
+  border-left: 4px solid #4CAF50;
+}
+
+.concept-group h4 {
+  font-size: 1.05em;
+  margin-bottom: 8px;
+  color: black;
+  font-weight: 600;
+}
+
+.concept-group p {
+  font-size: 0.95em;
+  margin: 0;
+  color: black;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.concept-group ul {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+}
+
+.concept-group li {
+  font-size: 0.95em;
+  color: black;
+  margin-bottom: 5px;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.examples-section {
+  margin-top: 20px;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 10px;
+}
+
+.examples-section h4 {
+  font-size: 1.1em;
+  margin-bottom: 15px;
+  color: black;
+  text-align: left;
+}
+
+.examples-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.example-item {
+  background: rgba(0, 0, 0, 0.05);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.example-item:hover {
+  background: rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.example-item strong {
+  display: block;
+  font-size: 0.9em;
+  margin-bottom: 5px;
+  color: black;
+}
+
+.example-item span {
+  font-size: 0.85em;
+  color: black;
+  font-family: 'Courier New', monospace;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .key-concepts {
+    padding: 15px;
+  }
+  
+  .examples-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .concept-group {
+    padding: 8px;
+  }
+  
+  .description p {
+    font-size: 1em;
+  }
+}
+
+.auth-section {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.user-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.user-welcome {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.username {
+  font-size: 18px;
+  font-weight: 600;
+  color: black;
+}
+
+.user-stats {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.logout-button {
+  background: rgba(0, 0, 0, 0.1);
+  color: black;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.logout-button:hover {
+  background: rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.auth-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.auth-button {
+  background: rgba(0, 0, 0, 0.1);
+  color: black;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.auth-button:hover {
+  background: rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.auth-button.register {
+  background: rgba(76, 175, 80, 0.8);
+  border-color: rgba(76, 175, 80, 0.9);
+  color: white;
+}
+
+.auth-button.register:hover {
+  background: rgba(76, 175, 80, 1);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 20px;
+  }
+  
+  .title-section {
+    text-align: center;
+  }
+  
+  .description p {
+    text-align: center;
+  }
+  
+  .user-menu {
+    align-items: center;
+  }
+  
+  .user-info {
+    align-items: center;
+  }
 }
