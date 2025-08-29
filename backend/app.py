@@ -289,7 +289,7 @@ def generate_graph():
     
     try:
         if function_type == '2D':
-            print("🔄 Generating 2D graph...")
+            print("Generating 2D graph...")
             graph_data = generate_2d_graph(expression)
             print("2D graph generated successfully!")
             return jsonify({
@@ -299,7 +299,7 @@ def generate_graph():
                 'can_save': current_user_id is not None
             })
         elif function_type == '3D':
-            print("🔄 Generating 3D model...")
+            print("Generating 3D model...")
             model_data = generate_3d_model(expression)
             print("3D model generated successfully!")
             return jsonify({
@@ -352,49 +352,221 @@ def safe_eval_expression(expression, x_values):
         return x_values**2
 
 def safe_eval_polar_expression(expression, theta_values, a=1, n=1):
-    """Safely evaluate polar mathematical expressions (rose curves, cardioids, etc.)"""
+    """Complete polar expression evaluation for accurate rose curves and cardioids"""
     original_expression = expression
-    print(f"Evaluating polar expression: '{expression}' with a={a}, n={n}")
+    print(f"Evaluating polar expression: '{expression}'")
     
-    # Replace common mathematical notation
-    expression = expression.lower()
-    expression = expression.replace('^', '**')  # Handle exponents
+    # Clean and normalize expression
+    expression = expression.lower().strip()
+    expression = expression.replace('^', '**')
+    expression = expression.replace('θ', 'theta')
+    expression = expression.replace('ϴ', 'theta')
+    expression = expression.replace(' ', '')  # Remove all spaces for pattern matching
     
-    # Handle multiple theta formats
-    expression = expression.replace('θ', 'theta')  # Greek theta
-    expression = expression.replace('ϴ', 'theta')  # Alternative theta
-    expression = expression.replace('t)', 'theta)')  # t as theta
-    expression = expression.replace('(t', '(theta')  # t as theta
-    expression = expression.replace(' t ', ' theta ')  # standalone t
-    expression = expression.replace('*t*', '*theta*')  # t between operators
-    expression = expression.replace('+t+', '+theta+')  # t with plus
-    expression = expression.replace('-t-', '-theta-')  # t with minus
-    
-    # Handle parentheses multiplication (e.g., "2(1 + cos(theta))" -> "2*(1 + cos(theta))")
+    # Handle parentheses multiplication
     import re
     expression = re.sub(r'(\d+)\(', r'\1*(', expression)
     
-    print(f"Cleaned expression: '{expression}'")
-    
-    # Create safe environment for evaluation
-    safe_dict = {
-        "theta": theta_values,
-        "t": theta_values,  # Also accept 't' as theta
-        "a": a,
-        "n": n,
-        "sin": np.sin,
-        "cos": np.cos,
-        "tan": np.tan,
-        "exp": np.exp,
-        "log": np.log,
-        "sqrt": np.sqrt,
-        "abs": np.abs,
-        "pi": np.pi,
-        "e": np.e,
-        "__builtins__": {}  # Remove built-in functions for security
-    }
+    print(f"Normalized expression: '{expression}'")
     
     try:
+        # ==================== CARDIOID PATTERNS ====================
+        
+        # Pattern 1: r = a(1 + cos(θ)) - RIGHT-FACING HEARTS
+        cardioid_right = r'r=(\d+\.?\d*)?\*?\(1\+cos\(theta\)\)'
+        match = re.search(cardioid_right, expression)
+        if match:
+            a = float(match.group(1)) if match.group(1) else 1.0
+            print(f"RIGHT-FACING Cardioid: a={a}, x-axis symmetry")
+            return a * (1 + np.cos(theta_values))
+        
+        # Pattern 2: r = a(1 - cos(θ)) - LEFT-FACING HEARTS
+        cardioid_left = r'r=(\d+\.?\d*)?\*?\(1-cos\(theta\)\)'
+        match = re.search(cardioid_left, expression)
+        if match:
+            a = float(match.group(1)) if match.group(1) else 1.0
+            print(f"LEFT-FACING Cardioid: a={a}, x-axis symmetry, flipped")
+            return a * (1 - np.cos(theta_values))
+        
+        # Pattern 3: r = a(1 + sin(θ)) - UP-FACING HEARTS
+        cardioid_up = r'r=(\d+\.?\d*)?\*?\(1\+sin\(theta\)\)'
+        match = re.search(cardioid_up, expression)
+        if match:
+            a = float(match.group(1)) if match.group(1) else 1.0
+            print(f"UP-FACING Cardioid: a={a}, y-axis symmetry")
+            return a * (1 + np.sin(theta_values))
+        
+        # Pattern 4: r = a(1 - sin(θ)) - DOWN-FACING HEARTS
+        cardioid_down = r'r=(\d+\.?\d*)?\*?\(1-sin\(theta\)\)'
+        match = re.search(cardioid_down, expression)
+        if match:
+            a = float(match.group(1)) if match.group(1) else 1.0
+            print(f"DOWN-FACING Cardioid: a={a}, y-axis symmetry, inverted")
+            return a * (1 - np.sin(theta_values))
+        
+        # ==================== LIMAÇON PATTERNS ====================
+        
+        # Pattern 5: r = 1 + 2*cos(θ) - INNER LOOP
+        if expression == 'r=1+2*cos(theta)':
+            print("INNER LOOP Limaçon: heart with inner loop (b > a)")
+            return 1 + 2 * np.cos(theta_values)
+        
+        # Pattern 6: r = 2 + cos(θ) - DIMPLED
+        if expression == 'r=2+cos(theta)':
+            print("DIMPLED Limaçon: smooth dimple (a > b)")
+            return 2 + np.cos(theta_values)
+        
+        # Additional limaçon patterns
+        if expression == 'r=1+2*sin(theta)':
+            print("INNER LOOP Limaçon (sin): rotated inner loop")
+            return 1 + 2 * np.sin(theta_values)
+        
+        if expression == 'r=2+sin(theta)':
+            print("DIMPLED Limaçon (sin): rotated dimpled shape")
+            return 2 + np.sin(theta_values)
+        
+        # ==================== ROSE CURVE PATTERNS ====================
+        
+        # Pattern 1: r = a*cos(k*theta) with coefficient
+        rose_cos_coeff = r'r=(\d+\.?\d*)\*?cos\((\d+)\*theta\)'
+        match = re.search(rose_cos_coeff, expression)
+        if match:
+            amplitude = float(match.group(1))
+            k = int(match.group(2))
+            petals = k if k % 2 != 0 else 2 * k
+            print(f"Rose curve (cos with amplitude): a={amplitude}, k={k}, petals={petals}")
+            return amplitude * np.cos(k * theta_values)
+        
+        # Pattern 2: r = cos(k*theta) without coefficient
+        rose_cos_simple = r'r=cos\((\d+)\*theta\)'
+        match = re.search(rose_cos_simple, expression)
+        if match:
+            k = int(match.group(1))
+            petals = k if k % 2 != 0 else 2 * k
+            print(f"Rose curve (cos): k={k}, petals={petals}")
+            return np.cos(k * theta_values)
+        
+        # Pattern 3: r = a*sin(k*theta) with coefficient
+        rose_sin_coeff = r'r=(\d+\.?\d*)\*?sin\((\d+)\*theta\)'
+        match = re.search(rose_sin_coeff, expression)
+        if match:
+            amplitude = float(match.group(1))
+            k = int(match.group(2))
+            petals = k if k % 2 != 0 else 2 * k
+            print(f"Rose curve (sin with amplitude): a={amplitude}, k={k}, petals={petals}")
+            return amplitude * np.sin(k * theta_values)
+        
+        # Pattern 4: r = sin(k*theta) without coefficient
+        rose_sin_simple = r'r=sin\((\d+)\*theta\)'
+        match = re.search(rose_sin_simple, expression)
+        if match:
+            k = int(match.group(1))
+            petals = k if k % 2 != 0 else 2 * k
+            print(f"Rose curve (sin): k={k}, petals={petals}")
+            return np.sin(k * theta_values)
+        
+        # Special case: r = cos(theta) or r = sin(theta)
+        if expression == 'r=cos(theta)':
+            print("Single petal rose (cos)")
+            return np.cos(theta_values)
+        elif expression == 'r=sin(theta)':
+            print("Single petal rose (sin)")
+            return np.sin(theta_values)
+        
+        # ==================== EXACT PATTERN MATCHING ====================
+        
+        clean_expr = expression.replace('r=', '')
+        
+        # Comprehensive exact patterns
+        exact_patterns = {
+            # CARDIOIDS - Perfect heart shapes
+            '1+cos(theta)': 1 + np.cos(theta_values),
+            '1-cos(theta)': 1 - np.cos(theta_values),
+            '1+sin(theta)': 1 + np.sin(theta_values),
+            '1-sin(theta)': 1 - np.sin(theta_values),
+            '2*(1+cos(theta))': 2 * (1 + np.cos(theta_values)),
+            '3*(1-cos(theta))': 3 * (1 - np.cos(theta_values)),
+            '4*(1+sin(theta))': 4 * (1 + np.sin(theta_values)),
+            '2*(1-sin(theta))': 2 * (1 - np.sin(theta_values)),
+            '2(1+cos(theta))': 2 * (1 + np.cos(theta_values)),
+            '3(1-cos(theta))': 3 * (1 - np.cos(theta_values)),
+            '4(1+sin(theta))': 4 * (1 + np.sin(theta_values)),
+            '2(1-sin(theta))': 2 * (1 - np.sin(theta_values)),
+            
+            # LIMAÇONS
+            '1+2*cos(theta)': 1 + 2 * np.cos(theta_values),
+            '2+cos(theta)': 2 + np.cos(theta_values),
+            '1+2*sin(theta)': 1 + 2 * np.sin(theta_values),
+            '2+sin(theta)': 2 + np.sin(theta_values),
+            
+            # ROSE CURVES
+            'cos(theta)': np.cos(theta_values),
+            'sin(theta)': np.sin(theta_values),
+            '2*cos(theta)': 2 * np.cos(theta_values),
+            '3*sin(theta)': 3 * np.sin(theta_values),
+            'cos(2*theta)': np.cos(2 * theta_values),
+            'sin(2*theta)': np.sin(2 * theta_values),
+            '2*cos(2*theta)': 2 * np.cos(2 * theta_values),
+            'cos(3*theta)': np.cos(3 * theta_values),
+            'sin(3*theta)': np.sin(3 * theta_values),
+            '2*cos(3*theta)': 2 * np.cos(3 * theta_values),
+            '4*sin(3*theta)': 4 * np.sin(3 * theta_values),
+            'cos(4*theta)': np.cos(4 * theta_values),
+            'sin(4*theta)': np.sin(4 * theta_values),
+            '5*cos(4*theta)': 5 * np.cos(4 * theta_values),
+            '3*sin(4*theta)': 3 * np.sin(4 * theta_values),
+            'cos(5*theta)': np.cos(5 * theta_values),
+            'sin(5*theta)': np.sin(5 * theta_values),
+            '3*sin(5*theta)': 3 * np.sin(5 * theta_values),
+            'cos(6*theta)': np.cos(6 * theta_values),
+            'sin(6*theta)': np.sin(6 * theta_values),
+            '6*cos(6*theta)': 6 * np.cos(6 * theta_values),
+            'cos(7*theta)': np.cos(7 * theta_values),
+            'sin(7*theta)': np.sin(7 * theta_values),
+            '2*sin(7*theta)': 2 * np.sin(7 * theta_values),
+            'cos(8*theta)': np.cos(8 * theta_values),
+            'sin(8*theta)': np.sin(8 * theta_values),
+        }
+        
+        if clean_expr in exact_patterns:
+            print(f"Exact pattern match: {clean_expr}")
+            return exact_patterns[clean_expr]
+        
+        # General safe evaluation
+        safe_dict = {
+            'theta': theta_values,
+            'cos': np.cos,
+            'sin': np.sin,
+            'tan': np.tan,
+            'pi': np.pi,
+            'e': np.e,
+            'exp': np.exp,
+            'log': np.log,
+            'sqrt': np.sqrt,
+            'abs': np.abs,
+            '__builtins__': {}
+        }
+        
+        expr_eval = expression.replace('r=', '')
+        result = eval(expr_eval, safe_dict)
+        
+        if isinstance(result, (int, float)):
+            return np.full_like(theta_values, result)
+        
+        return result
+        
+    except Exception as e:
+        print(f"Error in polar evaluation: {e}")
+        # Enhanced fallback
+        if 'cos(4*theta)' in expression:
+            return np.cos(4 * theta_values)
+        elif '1+cos(theta)' in expression:
+            return 1 + np.cos(theta_values)
+        elif '1-cos(theta)' in expression:
+            return 1 - np.cos(theta_values)
+        elif 'cos(theta)' in expression:
+            return np.cos(theta_values)
+        return np.ones_like(theta_values)
         # Evaluate the expression
         result = eval(expression, safe_dict)
         print(f"Successfully evaluated expression")
@@ -402,22 +574,34 @@ def safe_eval_polar_expression(expression, theta_values, a=1, n=1):
     except Exception as e:
         print(f"Error evaluating polar expression '{expression}': {e}")
         
-        # Better fallback based on expression type
-        if "1 + cos" in expression or "1 - cos" in expression:
-            print(f"🫀 Fallback to cardioid pattern")
+        # Enhanced fallback for rose curves
+        if 'cos(4*theta)' in expression:
+            print("Fallback to 8-petal rose curve: cos(4*theta)")
+            return np.cos(4 * theta_values)
+        elif 'sin(4*theta)' in expression:
+            print("Fallback to 8-petal rose curve: sin(4*theta)")
+            return np.sin(4 * theta_values)
+        elif 'cos(3*theta)' in expression:
+            print("Fallback to 3-petal rose curve: cos(3*theta)")
+            return np.cos(3 * theta_values)
+        elif 'sin(3*theta)' in expression:
+            print("Fallback to 3-petal rose curve: sin(3*theta)")
+            return np.sin(3 * theta_values)
+        elif "1 + cos" in expression or "1 - cos" in expression:
+            print(f"Fallback to cardioid pattern")
             # Cardioid fallback
             if "1 + cos" in expression:
                 return 1 + np.cos(theta_values)
             else:
                 return 1 - np.cos(theta_values)
         elif "1 + sin" in expression or "1 - sin" in expression:
-            print(f"🫀 Fallback to cardioid pattern (sin)")
+            print(f"Fallback to cardioid pattern (sin)")
             if "1 + sin" in expression:
                 return 1 + np.sin(theta_values)
             else:
                 return 1 - np.sin(theta_values)
         else:
-            print(f"🔄 Falling back to default rose curve a*cos(n*theta) with a={a}, n={n}")
+            print(f"Falling back to default rose curve a*cos(n*theta) with a={a}, n={n}")
             # Fallback to simple rose curve
             return a * np.cos(n * theta_values)
 
@@ -426,6 +610,21 @@ def detect_polar_equation(expression):
     expr_lower = expression.lower()
     polar_indicators = ['r =', 'r=', 'theta', 'θ', 'ϴ', 'cos(', 'sin(', 'cos(t)', 'sin(t)', 'cos(theta)', 'sin(theta)']
     cartesian_indicators = ['y =', 'y=', 'f(x)', 'x**', 'x^']
+    
+    # Enhanced rose curve detection
+    import re
+    rose_patterns = [
+        r'cos\s*\(\s*\d+\s*\*\s*theta\s*\)',  # cos(n*theta)
+        r'sin\s*\(\s*\d+\s*\*\s*theta\s*\)',  # sin(n*theta)
+        r'r\s*=\s*cos\s*\(\s*\d+\s*\*\s*theta\s*\)',  # r = cos(n*theta)
+        r'r\s*=\s*sin\s*\(\s*\d+\s*\*\s*theta\s*\)',  # r = sin(n*theta)
+    ]
+    
+    # Check for rose curve patterns
+    for pattern in rose_patterns:
+        if re.search(pattern, expr_lower):
+            print(f"Detected rose curve pattern in: {expression}")
+            return True
     
     has_polar = any(indicator in expr_lower for indicator in polar_indicators)
     has_cartesian = any(indicator in expr_lower for indicator in cartesian_indicators)
@@ -662,66 +861,216 @@ def extract_rose_parameters(expression):
     return a, n
 
 def analyze_polar_function(theta, r, expression, a, n):
-    """Analyze polar functions like rose curves"""
+    """Complete analysis for rose curves and cardioids"""
     finite_r = r[np.isfinite(r)]
     
     if len(finite_r) == 0:
         return {'error': 'No finite values to analyze'}
     
-def analyze_polar_function(theta, r, expression, a, n):
-    """Analyze polar functions like rose curves and cardioids"""
-    finite_r = r[np.isfinite(r)]
+    # Normalize expression for analysis
+    expr_normalized = expression.lower().replace(' ', '')
+    print(f"Analyzing expression: {expr_normalized}")
     
-    if len(finite_r) == 0:
-        return {'error': 'No finite values to analyze'}
+    # Check for cardioids first
+    if any(pattern in expr_normalized for pattern in ['1+cos', '1-cos', '1+sin', '1-sin']):
+        return analyze_cardioid_detailed(expression, finite_r, theta)
     
-    # Check if this is a cardioid
-    expr_lower = expression.lower()
-    is_cardioid = ('1 + cos' in expr_lower or '1 - cos' in expr_lower or 
-                   '1 + sin' in expr_lower or '1 - sin' in expr_lower)
+    # Check for limaçons
+    elif any(pattern in expr_normalized for pattern in ['1+2*cos', '2+cos', '1+2*sin', '2+sin']):
+        return analyze_limacon_detailed(expression, finite_r, theta)
     
-    if is_cardioid:
-        # This is a cardioid
-        analysis = {
-            'type': 'Cardioid (Heart-shaped curve)',
-            'equation_type': f'Cardioid: {expression}',
-            'petals': '1 heart lobe',
-            'max_radius': f'{finite_r.max():.2f}',
-            'symmetry': 'Heart-shaped with cusp',
-            'domain': 'θ ∈ [0, 2π]',
+    # Otherwise, it's a rose curve
+    else:
+        return analyze_rose_curve_detailed(expression, finite_r, theta)
+
+def analyze_cardioid_detailed(expression, r_values, theta_values):
+    """Detailed cardioid analysis following the reference"""
+    try:
+        # Determine cardioid characteristics
+        clean_expr = expression.lower().replace(' ', '')
+        
+        amplitude = 1.0
+        facing_direction = 'right'
+        symmetry_axis = 'x-axis'
+        
+        # Analyze pattern
+        if '1+cos' in clean_expr:
+            facing_direction = 'right'
+            symmetry_axis = 'x-axis'
+            amp_match = re.search(r'(\d+\.?\d*)\*?\(1\+cos', clean_expr)
+            amplitude = float(amp_match.group(1)) if amp_match else 1.0
+        elif '1-cos' in clean_expr:
+            facing_direction = 'left'
+            symmetry_axis = 'x-axis'
+            amp_match = re.search(r'(\d+\.?\d*)\*?\(1-cos', clean_expr)
+            amplitude = float(amp_match.group(1)) if amp_match else 1.0
+        elif '1+sin' in clean_expr:
+            facing_direction = 'up'
+            symmetry_axis = 'y-axis'
+            amp_match = re.search(r'(\d+\.?\d*)\*?\(1\+sin', clean_expr)
+            amplitude = float(amp_match.group(1)) if amp_match else 1.0
+        elif '1-sin' in clean_expr:
+            facing_direction = 'down'
+            symmetry_axis = 'y-axis'
+            amp_match = re.search(r'(\d+\.?\d*)\*?\(1-sin', clean_expr)
+            amplitude = float(amp_match.group(1)) if amp_match else 1.0
+        
+        max_radius = float(np.max(np.abs(r_values))) if len(r_values) > 0 else 2 * amplitude
+        min_radius = float(np.min(r_values)) if len(r_values) > 0 else 0.0
+        
+        return {
+            'type': f'Cardioid ({facing_direction}-facing)',
+            'curve_family': 'Cardioid (special case of Limaçon)',
+            'facing_direction': facing_direction,
+            'symmetry_axis': symmetry_axis,
+            'amplitude': amplitude,
+            'max_radius': max_radius,
+            'min_radius': min_radius,
+            'special_feature': 'sharp cusp at origin',
+            'curve_description': f'Perfect heart shape facing {facing_direction}',
             'properties': [
-                'Heart-shaped curve (cardioid)',
-                f'Maximum radius: {finite_r.max():.2f}',
-                'Has a characteristic cusp point',
-                'Named from Greek "kardia" (heart)'
+                f'Heart-shaped curve facing {facing_direction}',
+                f'Amplitude parameter: a = {amplitude}',
+                f'Symmetry: {symmetry_axis}',
+                f'Maximum radius: {max_radius:.2f}',
+                f'Sharp cusp at origin',
+                f'Named from Greek "kardia" (heart)'
             ]
         }
-        return analysis
-    
-    # Determine number of petals for rose curves
-    if 'cos' in expression.lower():
-        if n % 2 == 0:  # Even n
-            petals = 2 * n
-        else:  # Odd n
-            petals = n
-    else:
-        petals = "Variable"
-    
-    analysis = {
-        'type': 'Rose Curve (Polar)',
-        'equation_type': f'r = a cos(nθ) where a≈{a:.1f}, n≈{n:.1f}',
-        'petals': f'{petals} petals',
-        'max_radius': f'{finite_r.max():.2f}',
-        'symmetry': 'Symmetric about origin',
-        'domain': 'θ ∈ [0, 2π] (extended to 4π for visualization)',
-        'properties': [
-            f'Rose curve with {petals} petals',
-            f'Maximum radius: {finite_r.max():.2f}',
-            'Closed curve' if petals != "Variable" else 'Complex curve'
-        ]
-    }
-    
-    return analysis
+    except Exception as e:
+        print(f"Error in cardioid analysis: {e}")
+        return {
+            'type': 'Cardioid',
+            'properties': ['Heart-shaped polar curve'],
+            'max_radius': 2.0
+        }
+
+def analyze_limacon_detailed(expression, r_values, theta_values):
+    """Detailed limaçon analysis"""
+    try:
+        clean_expr = expression.lower().replace(' ', '')
+        
+        if '1+2*cos' in clean_expr:
+            limacon_type = 'inner_loop'
+            feature = 'inner loop inside heart (b > a)'
+        elif '2+cos' in clean_expr:
+            limacon_type = 'dimpled'
+            feature = 'smooth dimple, no sharp cusp (a > b)'
+        elif '1+2*sin' in clean_expr:
+            limacon_type = 'inner_loop'
+            feature = 'inner loop inside heart (b > a, rotated)'
+        elif '2+sin' in clean_expr:
+            limacon_type = 'dimpled'
+            feature = 'smooth dimple, no sharp cusp (a > b, rotated)'
+        else:
+            limacon_type = 'general'
+            feature = 'limaçon curve'
+        
+        max_radius = float(np.max(np.abs(r_values))) if len(r_values) > 0 else 3.0
+        min_radius = float(np.min(r_values)) if len(r_values) > 0 else 0.0
+        
+        return {
+            'type': f'Limaçon ({limacon_type})',
+            'curve_family': 'Limaçon family',
+            'limacon_type': limacon_type,
+            'max_radius': max_radius,
+            'min_radius': min_radius,
+            'special_feature': feature,
+            'properties': [
+                f'Limaçon with {feature}',
+                f'Maximum radius: {max_radius:.2f}',
+                f'Minimum radius: {min_radius:.2f}',
+                'Member of limaçon family'
+            ]
+        }
+    except Exception as e:
+        print(f"Error in limaçon analysis: {e}")
+        return {
+            'type': 'Limaçon',
+            'properties': ['Limaçon polar curve'],
+            'max_radius': 3.0
+        }
+
+def analyze_rose_curve_detailed(expression, r_values, theta_values):
+    """Detailed rose curve analysis"""
+    try:
+        # Extract amplitude and k value
+        amplitude = 1.0
+        k = 1
+        trig_func = 'cos'
+        
+        # Pattern matching for analysis
+        import re
+        
+        # Pattern 1: r = a*cos(k*theta) or r = a*sin(k*theta)
+        coeff_pattern = r'r=(\d+(?:\.\d+)?)\*?(cos|sin)\((\d+)\*theta\)'
+        match = re.search(coeff_pattern, expression.replace(' ', ''))
+        if match:
+            amplitude = float(match.group(1))
+            trig_func = match.group(2)
+            k = int(match.group(3))
+        else:
+            # Pattern 2: r = cos(k*theta) or r = sin(k*theta)
+            simple_pattern = r'r=(cos|sin)\((\d+)\*theta\)'
+            match = re.search(simple_pattern, expression.replace(' ', ''))
+            if match:
+                trig_func = match.group(1)
+                k = int(match.group(2))
+            else:
+                # Pattern 3: r = cos(theta) or r = sin(theta)
+                single_pattern = r'r=(cos|sin)\(theta\)'
+                match = re.search(single_pattern, expression.replace(' ', ''))
+                if match:
+                    trig_func = match.group(1)
+                    k = 1
+        
+        # Apply Rose Curve Rule: Odd k → k petals, Even k → 2k petals
+        petals = k if k % 2 != 0 else 2 * k
+        
+        # Determine symmetry
+        symmetry = 'symmetric about x-axis' if trig_func == 'cos' else 'symmetric about y-axis (rotated)'
+        
+        # Shape description
+        shape_descriptions = {
+            1: 'Single petal (oval-like loop)',
+            3: '3-petal rose (propeller/Mercedes logo shape)',
+            4: '4-petal rose (four-leaf clover shape)',
+            5: '5-petal rose (pentagonal flower)',
+            8: '8-petal rose (daisy-like flower)',
+            12: '12-petal rose (chrysanthemum pattern)',
+        }
+        
+        shape_desc = shape_descriptions.get(petals, f'{petals}-petal rose curve')
+        
+        max_radius = float(np.max(np.abs(r_values))) if len(r_values) > 0 else amplitude
+        
+        return {
+            'type': f'Rose Curve ({petals}-petal)',
+            'amplitude': amplitude,
+            'k_value': k,
+            'petals': petals,
+            'trig_function': trig_func,
+            'max_radius': max_radius,
+            'min_radius': 0.0,
+            'symmetry': symmetry,
+            'shape_description': shape_desc,
+            'petal_rule': f'k={k} is {"odd" if k % 2 != 0 else "even"} → {petals} petals',
+            'properties': [
+                shape_desc,
+                f'Amplitude (a) = {amplitude}',
+                f'Petal parameter (k) = {k}',
+                f'Rule: {"k petals (odd k)" if k % 2 != 0 else "2k petals (even k)"}',
+                symmetry,
+                f'Maximum radius: {max_radius:.2f}'
+            ]
+        }
+    except Exception as e:
+        print(f"Error in rose curve analysis: {e}")
+        return {
+            'type': 'Rose Curve',
+            'properties': ['Rose curve pattern'],
+            'max_radius': 1.0
+        }
 
 def analyze_function(x, y, expression):
     """Perform basic function analysis"""
@@ -1319,7 +1668,7 @@ def parse_natural_language_endpoint():
     data = request.get_json()
     user_input = data.get('input', '')
     
-    print(f"🗣️  Natural language input: {user_input}")
+    print(f"Natural language input: {user_input}")
     
     if not user_input:
         return jsonify({

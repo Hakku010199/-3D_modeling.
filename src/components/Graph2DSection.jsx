@@ -41,14 +41,14 @@ export default function Graph2DSection({ input, graphData }) {
             {graphData.analysis.properties && graphData.analysis.properties.length > 0 && (
               <li><strong>Properties:</strong> {graphData.analysis.properties.join(', ')}</li>
             )}
-            <li><strong>Backend Status:</strong> ✅ Connected</li>
+            <li><strong>Backend Status:</strong> Connected</li>
           </ul>
         ) : (
           <ul>
             <li>Function Type: {input ? 'Mathematical Expression' : 'Pending'}</li>
             <li>Symmetry: Analysis pending backend connection</li>
             <li>Domain: Real numbers (default)</li>
-            <li>Backend Status: {graphData ? '🔄 Processing...' : '❌ Disconnected - showing preview mode'}</li>
+            <li>Backend Status: {graphData ? 'Processing...' : 'Disconnected - showing preview mode'}</li>
           </ul>
         )}
       </div>

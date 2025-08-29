@@ -151,7 +151,7 @@ export const AuthProvider = ({ children }) => {
         fontSize: '18px',
         color: '#666'
       }}>
-        🔄 Loading...
+        Loading...
       </div>
     );
   }

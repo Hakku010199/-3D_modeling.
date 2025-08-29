@@ -74,7 +74,7 @@ export default function AuthModal({ isOpen, onClose }) {
         <button className="modal-close" onClick={onClose}>×</button>
         
         <div className="auth-form">
-          <h2>{isLogin ? ' Sign In to Graph Visualizer' : 'Join Graph Visualizer'}</h2>
+          <h2>{isLogin ? 'Sign In to Graph Visualizer' : 'Join Graph Visualizer'}</h2>
           
           <form onSubmit={handleSubmit}>
             <div className="form-group">
@@ -128,7 +128,7 @@ export default function AuthModal({ isOpen, onClose }) {
             {error && <div className="error-message">{error}</div>}
             
             <button type="submit" disabled={loading} className="auth-button">
-              {loading ? ' Processing...' : (isLogin ? ' Sign In' : 'Create Account')}
+              {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Create Account')}
             </button>
           </form>
           

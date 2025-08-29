@@ -27,12 +27,12 @@ export default function FunctionInput({ functionInput, setFunctionInput, onGener
         // Auto-fill the mathematical expression
         setFunctionInput(data.equation);
         // Show interpretation message
-        alert(`✅ ${data.interpretation}`);
+        alert(`Success: ${data.interpretation}`);
         setNlpSuggestions([]);
       } else {
         // Show suggestions
         setNlpSuggestions(data.suggestions || []);
-        alert(`❌ ${data.error}`);
+        alert(`Error: ${data.error}`);
       }
     } catch (error) {
       console.error('NLP parsing error:', error);
@@ -72,7 +72,7 @@ export default function FunctionInput({ functionInput, setFunctionInput, onGener
         {/* Suggestions */}
         {nlpSuggestions.length > 0 && (
           <div className="nlp-suggestions">
-            <p>💡 Try these examples:</p>
+            <p>Try these examples:</p>
             {nlpSuggestions.map((suggestion, index) => (
               <button 
                 key={index}

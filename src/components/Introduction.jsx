@@ -7,14 +7,14 @@ export default function PolarCoordinatesIntroduction() {
   return (
     <div className="introduction-section">
       <div className="intro-header" onClick={() => setIsExpanded(!isExpanded)}>
-        <h2>📊 Understanding Polar Coordinates</h2>
+        <h2>Understanding Polar Coordinates</h2>
         <span className={`expand-icon ${isExpanded ? 'expanded' : ''}`}>▼</span>
       </div>
       
       {isExpanded && (
         <div className="intro-content">
           <div className="intro-text">
-            <h3>🎯 Understanding Polar Coordinates</h3>
+            <h3>Understanding Polar Coordinates</h3>
             <p>
               Start with a point <strong>O</strong> in the plane called the <strong>pole</strong> (we will always identify this point with the origin). 
               From the pole, draw a ray, called the <strong>initial ray</strong> (we will always draw this ray horizontally, identifying it with the positive x-axis). 
@@ -84,7 +84,7 @@ export default function PolarCoordinatesIntroduction() {
             </div>
 
             <div className="conversion-info">
-              <h4>🔄 Conversion Between Coordinate Systems:</h4>
+              <h4>Conversion Between Coordinate Systems:</h4>
               <div className="conversion-formulas">
                 <div className="formula-group">
                   <h5>Polar to Rectangular:</h5>
@@ -100,7 +100,7 @@ export default function PolarCoordinatesIntroduction() {
             </div>
 
             <div className="natural-language-hint">
-              <h4>🗣️ Natural Language Support:</h4>
+              <h4>Natural Language Support:</h4>
               <p>
                 Our application supports natural language input! Try phrases like:
               </p>

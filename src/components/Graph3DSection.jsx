@@ -36,13 +36,13 @@ export default function Graph3DSection({ input, graphData }) {
           <ul>
             <li><strong>Function:</strong> f(x,y) = {graphData.expression || input}</li>
             <li><strong>Type:</strong> {graphData.type || '3D Surface Plot'}</li>
-            <li><strong>Backend Status:</strong> ✅ Connected</li>
+            <li><strong>Backend Status:</strong> Connected</li>
           </ul>
         ) : (
           <ul>
             <li>Function: {input || 'Pending'}</li>
             <li>Type: 3D Surface Plot</li>
-            <li>Backend Status: ❌ Disconnected</li>
+            <li>Backend Status: Disconnected</li>
           </ul>
         )}
       </div>
