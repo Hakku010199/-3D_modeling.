@@ -12,6 +12,7 @@ export default function AuthModal({ isOpen, onClose }) {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const { login, register } = useAuth();
 
   if (!isOpen) return null;
@@ -70,74 +71,121 @@ export default function AuthModal({ isOpen, onClose }) {
 
   return (
     <div className="auth-modal-overlay" onClick={onClose}>
-      <div className="auth-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose}>×</button>
-        
-        <div className="auth-form">
-          <h2>{isLogin ? 'Sign In to Graph Visualizer' : 'Join Graph Visualizer'}</h2>
-          
-          <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <input
-                type="text"
-                name="username"
-                placeholder="Username"
-                value={formData.username}
-                onChange={handleChange}
-                required
-              />
+      <div className="auth-modal-container" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="auth-header">
+          <h1 className="auth-main-title">Sign In And Sign Up Forms</h1>
+          <button className="modal-close" onClick={onClose}>×</button>
+        </div>
+
+        <div className="auth-split-container">
+          {/* Left Side - Sign In */}
+          <div className="auth-left-panel">
+            <div className="auth-form-container">
+              <h2 className="form-title">Welcome Back</h2>
+              <p className="form-subtitle">Sign in to your account</p>
+              
+              <form onSubmit={handleSubmit} className="auth-form">
+                <div className="form-group">
+                  <input
+                    type="text"
+                    name="username"
+                    placeholder="Username"
+                    value={formData.username}
+                    onChange={handleChange}
+                    className="rounded-input"
+                    required
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <input
+                    type="password"
+                    name="password"
+                    placeholder="Password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    className="rounded-input"
+                    required
+                  />
+                </div>
+
+                {!isLogin && (
+                  <>
+                    <div className="form-group">
+                      <input
+                        type="email"
+                        name="email"
+                        placeholder="Email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        className="rounded-input"
+                        required
+                      />
+                    </div>
+                    
+                    <div className="form-group">
+                      <input
+                        type="password"
+                        name="confirmPassword"
+                        placeholder="Confirm Password"
+                        value={formData.confirmPassword}
+                        onChange={handleChange}
+                        className="rounded-input"
+                        required
+                      />
+                    </div>
+                  </>
+                )}
+                
+                {isLogin && (
+                  <div className="form-options">
+                    <label className="remember-me">
+                      <input
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                      />
+                      <span className="checkmark"></span>
+                      Remember me
+                    </label>
+                    <a href="#" className="forgot-password">Forgot Password?</a>
+                  </div>
+                )}
+                
+                {error && <div className="error-message">{error}</div>}
+                
+                <button 
+                  type="submit" 
+                  disabled={loading} 
+                  className="gradient-button primary"
+                >
+                  {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Create Account')}
+                </button>
+              </form>
             </div>
-            
-            {!isLogin && (
-              <div className="form-group">
-                <input
-                  type="email"
-                  name="email"
-                  placeholder="Email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-            )}
-            
-            <div className="form-group">
-              <input
-                type="password"
-                name="password"
-                placeholder="Password (min 6 characters)"
-                value={formData.password}
-                onChange={handleChange}
-                required
-              />
+          </div>
+
+          {/* Right Side - Sign Up Promotion */}
+          <div className="auth-right-panel">
+            <div className="right-panel-content">
+              <h2 className="right-panel-title">
+                {isLogin ? 'New Here?' : 'Already Have Account?'}
+              </h2>
+              <p className="right-panel-description">
+                {isLogin 
+                  ? 'Join our community of graph visualization enthusiasts. Create stunning mathematical visualizations and explore the beauty of mathematics in 2D and 3D.'
+                  : 'Welcome back! Sign in to access your saved graphs, view your visualization history, and continue your mathematical journey.'
+                }
+              </p>
+              <button 
+                onClick={switchMode} 
+                className="gradient-button secondary"
+              >
+                {isLogin ? 'Sign Up' : 'Sign In'}
+              </button>
             </div>
-            
-            {!isLogin && (
-              <div className="form-group">
-                <input
-                  type="password"
-                  name="confirmPassword"
-                  placeholder="Confirm Password"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-            )}
-            
-            {error && <div className="error-message">{error}</div>}
-            
-            <button type="submit" disabled={loading} className="auth-button">
-              {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Create Account')}
-            </button>
-          </form>
-          
-          <p className="auth-switch">
-            {isLogin ? "Don't have an account?" : "Already have an account?"}{' '}
-            <button onClick={switchMode} className="link-button">
-              {isLogin ? 'Sign Up' : 'Sign In'}
-            </button>
-          </p>
+          </div>
         </div>
       </div>
     </div>
