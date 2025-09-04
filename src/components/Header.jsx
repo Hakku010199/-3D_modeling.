@@ -91,16 +91,16 @@ export default function Header({ user, isAuthenticated, onShowAuth, onLogout }) 
                 <span className="user-stats">{user?.total_graphs || 0} graphs saved</span>
               </div>
               <button onClick={onLogout} className="logout-button">
-                🚪 Sign Out
+                Sign Out
               </button>
             </div>
           ) : (
             <div className="auth-buttons">
               <button onClick={onShowAuth} className="auth-button login">
-                🔐 Sign In
+                Sign In
               </button>
               <button onClick={onShowAuth} className="auth-button register">
-                ✨ Sign Up
+                Sign Up
               </button>
             </div>
           )}

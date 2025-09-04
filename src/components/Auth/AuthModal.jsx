@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
 import './AuthModal.css';
 
-export default function AuthModal({ isOpen, onClose }) {
-  const [isLogin, setIsLogin] = useState(true);
+export default function AuthModal({ isOpen, onClose, onLogin }) {
+  const [isSignUp, setIsSignUp] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -11,178 +10,256 @@ export default function AuthModal({ isOpen, onClose }) {
     confirmPassword: ''
   });
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-  const { login, register } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
 
-  if (!isOpen) return null;
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    // Clear error when user starts typing
+    if (error) setError('');
+  };
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+  const validateForm = () => {
+    // Check if all required fields are filled
+    if (!formData.username.trim()) {
+      setError('Username is required');
+      return false;
+    }
+
+    if (isSignUp && !formData.email.trim()) {
+      setError('Email is required');
+      return false;
+    }
+
+    if (!formData.password.trim()) {
+      setError('Password is required');
+      return false;
+    }
+
+    if (isSignUp && !formData.confirmPassword.trim()) {
+      setError('Please confirm your password');
+      return false;
+    }
+
+    // Validate email format
+    if (isSignUp && formData.email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        setError('Please enter a valid email address');
+        return false;
+      }
+    }
+
+    // Check password match for sign up
+    if (isSignUp && formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return false;
+    }
+
+    // Check password length
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return false;
+    }
+
+    return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    if (isLogin) {
-      const result = await login(formData.username, formData.password);
-      if (result.success) {
-        onClose();
-      } else {
-        setError(result.error);
-      }
-    } else {
-      if (formData.password !== formData.confirmPassword) {
-        setError('Passwords do not match');
-        setLoading(false);
-        return;
-      }
-      if (formData.password.length < 6) {
-        setError('Password must be at least 6 characters');
-        setLoading(false);
-        return;
-      }
-      const result = await register(formData.username, formData.email, formData.password);
-      if (result.success) {
-        onClose();
-      } else {
-        setError(result.error);
-      }
-    }
     
-    setLoading(false);
+    // Validate form before submission
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const endpoint = isSignUp ? '/api/register' : '/api/login';
+      const requestBody = isSignUp 
+        ? {
+            username: formData.username.trim(),
+            email: formData.email.trim(),
+            password: formData.password
+          }
+        : {
+            username: formData.username.trim(),
+            password: formData.password
+          };
+
+      console.log('Submitting form:', { endpoint, requestBody });
+
+      const response = await fetch(`http://localhost:5000${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      console.log('Response status:', response.status);
+
+      const data = await response.json();
+      console.log('Response data:', data);
+
+      if (response.ok) {
+        // Success
+        localStorage.setItem('user', JSON.stringify(data.user));
+        onLogin(data.user);
+        onClose();
+        // Reset form
+        setFormData({ username: '', email: '', password: '', confirmPassword: '' });
+        setError('');
+      } else {
+        // Error from server
+        setError(data.message || `${isSignUp ? 'Registration' : 'Login'} failed`);
+      }
+    } catch (error) {
+      console.error(`${isSignUp ? 'Registration' : 'Login'} error:`, error);
+      setError('Network error. Please check your connection and try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const switchMode = () => {
-    setIsLogin(!isLogin);
+  const toggleMode = () => {
+    setIsSignUp(!isSignUp);
+    setFormData({ username: '', email: '', password: '', confirmPassword: '' });
     setError('');
-    setFormData({
-      username: '',
-      email: '',
-      password: '',
-      confirmPassword: ''
-    });
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="auth-modal-overlay" onClick={onClose}>
       <div className="auth-modal-container" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="auth-header">
-          <h1 className="auth-main-title">Sign In And Sign Up Forms</h1>
+          <h1 className="auth-main-title">Let's Sign in or Sign up here!!</h1>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
 
+        {/* Split Container */}
         <div className="auth-split-container">
-          {/* Left Side - Sign In */}
+          {/* Left Panel - Form */}
           <div className="auth-left-panel">
             <div className="auth-form-container">
-              <h2 className="form-title">Welcome Back</h2>
-              <p className="form-subtitle">Sign in to your account</p>
-              
+              <h2 className="form-title">
+                {isSignUp ? 'Create Account' : 'Welcome Back'}
+              </h2>
+              <p className="form-subtitle">
+                {isSignUp 
+                  ? 'Join us to explore mathematical graphs!' 
+                  : 'Sign in to continue your mathematical journey'
+                }
+              </p>
+
+              {error && <div className="error-message">{error}</div>}
+
               <form onSubmit={handleSubmit} className="auth-form">
                 <div className="form-group">
                   <input
                     type="text"
                     name="username"
-                    placeholder="Username"
                     value={formData.username}
-                    onChange={handleChange}
+                    onChange={handleInputChange}
+                    placeholder="Enter your username"
                     className="rounded-input"
                     required
+                    disabled={isLoading}
                   />
                 </div>
-                
+
+                {isSignUp && (
+                  <div className="form-group">
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      placeholder="Enter your email"
+                      className="rounded-input"
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
+                )}
+
                 <div className="form-group">
                   <input
                     type="password"
                     name="password"
-                    placeholder="Password"
                     value={formData.password}
-                    onChange={handleChange}
+                    onChange={handleInputChange}
+                    placeholder="Enter your password"
                     className="rounded-input"
                     required
+                    disabled={isLoading}
                   />
                 </div>
 
-                {!isLogin && (
-                  <>
-                    <div className="form-group">
-                      <input
-                        type="email"
-                        name="email"
-                        placeholder="Email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        className="rounded-input"
-                        required
-                      />
-                    </div>
-                    
-                    <div className="form-group">
-                      <input
-                        type="password"
-                        name="confirmPassword"
-                        placeholder="Confirm Password"
-                        value={formData.confirmPassword}
-                        onChange={handleChange}
-                        className="rounded-input"
-                        required
-                      />
-                    </div>
-                  </>
+                {isSignUp && (
+                  <div className="form-group">
+                    <input
+                      type="password"
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleInputChange}
+                      placeholder="Confirm your password"
+                      className="rounded-input"
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
                 )}
-                
-                {isLogin && (
+
+                {!isSignUp && (
                   <div className="form-options">
                     <label className="remember-me">
-                      <input
-                        type="checkbox"
-                        checked={rememberMe}
-                        onChange={(e) => setRememberMe(e.target.checked)}
-                      />
-                      <span className="checkmark"></span>
+                      <input type="checkbox" />
                       Remember me
                     </label>
                     <a href="#" className="forgot-password">Forgot Password?</a>
                   </div>
                 )}
-                
-                {error && <div className="error-message">{error}</div>}
-                
+
                 <button 
                   type="submit" 
-                  disabled={loading} 
                   className="gradient-button primary"
+                  disabled={isLoading}
                 >
-                  {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Create Account')}
+                  {isLoading 
+                    ? (isSignUp ? 'Creating Account...' : 'Signing In...') 
+                    : (isSignUp ? 'Create Account' : 'Sign In')
+                  }
                 </button>
               </form>
             </div>
           </div>
 
-          {/* Right Side - Sign Up Promotion */}
+          {/* Right Panel - Call to Action */}
           <div className="auth-right-panel">
             <div className="right-panel-content">
               <h2 className="right-panel-title">
-                {isLogin ? 'New Here?' : 'Already Have Account?'}
+                {isSignUp ? 'Already have an account?' : 'New to our platform?'}
               </h2>
               <p className="right-panel-description">
-                {isLogin 
-                  ? 'Join our community of graph visualization enthusiasts. Create stunning mathematical visualizations and explore the beauty of mathematics in 2D and 3D.'
-                  : 'Welcome back! Sign in to access your saved graphs, view your visualization history, and continue your mathematical journey.'
+                {isSignUp 
+                  ? 'Sign in to access your saved graphs and continue your mathematical exploration!'
+                  : 'Join thousands of users exploring the beauty of mathematical visualization!'
                 }
               </p>
               <button 
-                onClick={switchMode} 
+                onClick={toggleMode} 
                 className="gradient-button secondary"
+                disabled={isLoading}
               >
-                {isLogin ? 'Sign Up' : 'Sign In'}
+                {isSignUp ? 'Sign In' : 'Sign Up'}
               </button>
             </div>
           </div>
